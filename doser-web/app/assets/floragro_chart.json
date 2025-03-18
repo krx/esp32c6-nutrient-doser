@@ -1,0 +1,95 @@
+{
+  "light": {
+    "Seedling": {
+      "FloraMicro": 1.8,
+      "FloraGro": 1.8,
+      "FloraBloom": 1.8
+    },
+    "Early Growth": {
+      "FloraMicro": 3.6,
+      "FloraGro": 3.4,
+      "FloraBloom": 2.6,
+      "CALiMAGic": 1.9
+    },
+    "Late Growth": {
+      "FloraMicro": 6.0,
+      "FloraGro": 5.6,
+      "FloraBloom": 4.2,
+      "CALiMAGic": 1.9
+    },
+    "Early Bloom": {
+      "FloraMicro": 5.3,
+      "FloraGro": 4.7,
+      "FloraBloom": 6.1,
+      "CALiMAGic": 1.9
+    },
+    "Mid-Late Bloom": {
+      "FloraMicro": 4.7,
+      "FloraGro": 4.7,
+      "FloraBloom": 6.6,
+      "CALiMAGic": 1.9
+    }
+  },
+  "medium": {
+    "Seedling": {
+      "FloraMicro": 2.0,
+      "FloraGro": 2.0,
+      "FloraBloom": 2.0
+    },
+    "Early Growth": {
+      "FloraMicro": 4.2,
+      "FloraGro": 3.8,
+      "FloraBloom": 3.0,
+      "CALiMAGic": 1.9
+    },
+    "Late Growth": {
+      "FloraMicro": 6.8,
+      "FloraGro": 6.4,
+      "FloraBloom": 4.8,
+      "CALiMAGic": 1.9
+    },
+    "Early Bloom": {
+      "FloraMicro": 6.1,
+      "FloraGro": 5.3,
+      "FloraBloom": 6.6,
+      "CALiMAGic": 1.9
+    },
+    "Mid-Late Bloom": {
+      "FloraMicro": 5.3,
+      "FloraGro": 5.3,
+      "FloraBloom": 7.6,
+      "CALiMAGic": 1.9
+    }
+  },
+  "aggressive": {
+    "Seedling": {
+      "FloraMicro": 2.5,
+      "FloraGro": 2.5,
+      "FloraBloom": 2.5
+    },
+    "Early Growth": {
+      "FloraMicro": 5.2,
+      "FloraGro": 4.8,
+      "FloraBloom": 3.7,
+      "CALiMAGic": 2.0
+    },
+    "Late Growth": {
+      "FloraMicro": 8.5,
+      "FloraGro": 8.0,
+      "FloraBloom": 6.0,
+      "CALiMAGic": 2.0
+    },
+    "Early Bloom": {
+      "FloraMicro": 7.6,
+      "FloraGro": 6.6,
+      "FloraBloom": 8.5,
+      "CALiMAGic": 2.0
+    },
+    "Mid-Late Bloom": {
+      "FloraMicro": 6.6,
+      "FloraGro": 6.6,
+      "FloraBloom": 9.5,
+      "CALiMAGic": 2.0
+    }
+  }
+}
