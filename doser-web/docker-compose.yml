@@ -1,0 +1,12 @@
+volumes:
+  nutrient-doser-data:
+
+services:
+  nutrient-doser:
+    build: .
+    container_name: nutrient-doser
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    volumes:
+      - nutrient-doser-data:/app/.data
