@@ -15,6 +15,7 @@
     "@iconify-json/lucide": "^1.2.29",
     "@iconify-json/simple-icons": "^1.2.28",
     "@nuxt/ui": "^3.0.0",
+    "@vite-pwa/nuxt": "0.10.6",
     "@vueuse/nuxt": "13.0.0",
     "lodash": "^4.17.21",
     "nuxt": "^3.16.0",
@@ -25,8 +26,17 @@
   "devDependencies": {
     "@nuxt/eslint": "^1.2.0",
     "@types/lodash": "^4.17.16",
+    "@vite-pwa/assets-generator": "^0.2.6",
     "eslint": "^9.22.0",
     "typescript": "^5.8.2"
   },
-  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b"
+  "packageManager": "pnpm@10.6.2+sha512.47870716bea1572b53df34ad8647b42962bc790ce2bf4562ba0f643237d7302a3d6a8ecef9e4bdfc01d23af1969aa90485d4cebb0b9638fa5ef1daef656f6c1b",
+  "pnpm": {
+    "ignoredBuiltDependencies": [
+      "sharp"
+    ],
+    "onlyBuiltDependencies": [
+      "sharp"
+    ]
+  }
 }
