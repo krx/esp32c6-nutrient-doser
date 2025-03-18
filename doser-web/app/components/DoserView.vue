@@ -93,14 +93,14 @@ async function dispense_solution() {
         </UContainer>
       </template>
 
-      <UContainer class="flex flex-wrap items-center justify-center gap-2">
+      <div class="flex flex-wrap items-center justify-center gap-2 max-w-(--ui-container) mx-auto px-4">
         <MotorCard
           v-for="motor in doser.motors"
           :key="motor.idx"
           v-model="doser.motors[motor.idx]!"
           v-model:doser="doser"
         />
-      </UContainer>
+      </div>
 
       <template #footer>
         <UContainer class="flex items-center justify-center">
