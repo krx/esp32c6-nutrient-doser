@@ -20,6 +20,7 @@ use esp_idf_svc::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use tokio::{net::TcpListener, sync::Mutex, time::sleep};
+use tower_http::cors::{self, CorsLayer};
 
 #[macro_export]
 macro_rules! esp_err {
@@ -142,12 +143,18 @@ pub async fn run(motors: Vec<MotorPin>) -> anyhow::Result<()> {
     let app = Router::new()
         .route("/", get(root))
         .route("/info", get(get_info))
-        .route("/dispense", post(dispense_single))
+        .route("/dispense", post(dispense))
         .route("/calibrate", post(calibrate))
         .route("/dose", post(dose_solution))
         .route("/reboot", get(reboot))
         .route("/ota", post(handle_ota))
-        .with_state(state.clone());
+        .with_state(state.clone())
+        .layer(
+            CorsLayer::new()
+                .allow_origin(cors::Any)
+                .allow_methods(cors::Any)
+                .allow_headers(cors::Any),
+        );
 
     let listener = TcpListener::bind(format!("{BIND_IP}:{PORT}")).await?;
     axum::serve(listener, app).await?;
@@ -170,24 +177,29 @@ async fn get_info(State(state): State<SharedState>) -> Json<Info> {
 }
 
 #[derive(Deserialize)]
-struct DispenseSingleReq {
+struct DispenseSingle {
     motor_idx: usize,
     ml: f64,
 }
 
-async fn dispense_single(
-    State(state): State<SharedState>,
-    Json(req): Json<DispenseSingleReq>,
-) -> StatusCode {
-    match state.lock().await.motors.get_mut(req.motor_idx) {
-        Some(motor) => {
-            let dispense_time = req.ml / motor.ml_per_sec;
-            info!("Dispensing liquid #{} for {dispense_time}s", req.motor_idx);
-            motor.run_for(Duration::from_secs_f64(dispense_time)).await;
-            StatusCode::OK
+#[derive(Deserialize)]
+struct DispenseReq {
+    reqs: Vec<DispenseSingle>,
+}
+
+async fn dispense(State(state): State<SharedState>, Json(req): Json<DispenseReq>) -> StatusCode {
+    let mut resp = StatusCode::OK;
+    for r in req.reqs.iter() {
+        match state.lock().await.motors.get_mut(r.motor_idx) {
+            Some(motor) => {
+                let dispense_time = r.ml / motor.ml_per_sec;
+                info!("Dispensing liquid #{} for {dispense_time}s", r.motor_idx);
+                motor.run_for(Duration::from_secs_f64(dispense_time)).await;
+            }
+            None => resp = StatusCode::BAD_REQUEST,
         }
-        None => StatusCode::BAD_REQUEST,
     }
+    resp
 }
 
 #[derive(Deserialize)]
