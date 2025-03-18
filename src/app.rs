@@ -2,8 +2,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use axum::{
+    body::Body,
     extract::State,
-    http::{StatusCode, Uri},
+    http::{Request, StatusCode, Uri},
+    middleware::Next,
     routing::{get, post},
     Json, Router,
 };
@@ -154,15 +156,21 @@ pub async fn run(motors: Vec<MotorPin>) -> anyhow::Result<()> {
                 .allow_origin(cors::Any)
                 .allow_methods(cors::Any)
                 .allow_headers(cors::Any),
-        );
+        )
+        .route_layer(axum::middleware::from_fn(
+            // this spawns every route request to protect against cancellation
+            |req: Request<Body>, next: Next| async move {
+                tokio::task::spawn(next.run(req)).await.unwrap()
+            },
+        ));
 
     let listener = TcpListener::bind(format!("{BIND_IP}:{PORT}")).await?;
     axum::serve(listener, app).await?;
     Ok(())
 }
 
-async fn root() -> Json<&'static str> {
-    Json("Nutrient doser")
+async fn root() -> Json<String> {
+    Json(format!("Nutrient doser {}", env!("CARGO_PKG_VERSION")))
 }
 
 #[derive(Serialize)]
