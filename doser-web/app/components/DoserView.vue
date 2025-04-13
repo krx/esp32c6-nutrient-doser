@@ -8,6 +8,7 @@ import type { DoseSolutionReq, VolUnit } from '@/types/doser_api';
 import _ from 'lodash';
 
 const doser = defineModel<DoserInfo>({ required: true });
+const wakelock = reactive(useWakeLock());
 
 const chart = raw_chart as FeedChart;
 const schedule = ref<string>(Object.keys(chart)[1]!);
@@ -35,6 +36,7 @@ function all_motors_configured() {
 }
 
 async function prime_all() {
+  await wakelock.request('screen');
   await api.add_doser(doser.value);
   await dapi.dispense(doser.value.url, {
     reqs: doser.value.motors.map((m) => {
@@ -44,6 +46,7 @@ async function prime_all() {
       };
     }),
   });
+  await wakelock.release();
 }
 
 const target_amount = ref(1.0);
@@ -63,7 +66,9 @@ async function dispense_solution() {
     target_amount: target_amount.value,
     target_unit: _.capitalize(target_unit.value),
   };
+  await wakelock.request('screen');
   await dapi.dose_solution(doser.value.url, req);
+  await wakelock.release();
 }
 </script>
 
@@ -150,7 +155,7 @@ async function dispense_solution() {
 
         <UButtonGroup class="w-full">
           <UBadge label="Target amount" color="neutral" variant="subtle" size="xl" />
-          <UInputNumber v-model="target_amount" :min="0" class="w-full" size="xl" />
+          <UInputNumber v-model="target_amount" :min="0" :step="0.1" class="w-full" size="xl" />
           <USelect
             v-model="target_unit"
             :items="units"

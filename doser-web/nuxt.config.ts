@@ -1,5 +1,3 @@
-const sw = process.env.SW === 'true'
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devtools: { enabled: true },
@@ -18,9 +16,7 @@ export default defineNuxtConfig({
   },
   modules: ['@nuxt/ui', '@nuxt/eslint', '@vueuse/nuxt', 'nuxt-security', '@vite-pwa/nuxt'],
   pwa: {
-    strategies: sw ? 'injectManifest' : 'generateSW',
-    srcDir: sw ? 'service-worker' : undefined,
-    filename: sw ? 'sw.ts' : undefined,
+    strategies: 'generateSW',
     registerType: 'autoUpdate',
     manifest: {
       name: 'Nutrient Doser',
@@ -51,10 +47,10 @@ export default defineNuxtConfig({
       ],
     },
     workbox: {
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
     },
     injectManifest: {
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+      globPatterns: ['**/*.{js,css,html,png,svg,ico,json}'],
     },
     client: {
       installPrompt: true,

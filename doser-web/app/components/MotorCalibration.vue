@@ -6,6 +6,7 @@ import type { DoserInfo, MotorConfig } from '~~/shared/types/doser';
 const motor = defineModel<MotorConfig>({ required: true });
 const doser = defineModel<DoserInfo>('doser', { required: true });
 const modal_open = defineModel<boolean>('modal', { required: true });
+const wakelock = reactive(useWakeLock());
 
 const dispensed = ref(10.0);
 const actual = ref(10.0);
@@ -31,6 +32,7 @@ const steps = ref<StepperItem[]>([
 ]);
 
 async function dispense_step() {
+  await wakelock.request('screen');
   await dapi.dispense(doser.value.url, {
     reqs: [
       {
@@ -41,6 +43,7 @@ async function dispense_step() {
   });
   actual.value = dispensed.value;
   stepper.value?.next();
+  await wakelock.release();
 }
 
 async function calibrate_step() {
@@ -53,6 +56,7 @@ async function calibrate_step() {
 }
 
 async function confirm_step() {
+  await wakelock.request('screen');
   await dapi.dispense(doser.value.url, {
     reqs: [
       {
@@ -61,6 +65,7 @@ async function confirm_step() {
       },
     ],
   });
+  await wakelock.release();
 }
 </script>
 
