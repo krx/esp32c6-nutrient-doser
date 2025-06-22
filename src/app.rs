@@ -1,5 +1,11 @@
-use std::sync::Arc;
 use std::time::Duration;
+use std::sync::Arc;
+
+use embedded_svc::http::{
+    client::{Client, Response},
+    Headers, Method,
+};
+use http::header::ACCEPT;
 
 use axum::{
     body::Body,
@@ -14,14 +20,20 @@ use esp_idf_svc::{
         gpio::{AnyIOPin, Output, PinDriver},
         reset::restart,
     },
+    http::client::{Configuration, EspHttpConnection},
     nvs::{EspCustomNvs, EspCustomNvsPartition},
     ota::{EspOta, FirmwareInfo},
     sys::{EspError, ESP_ERR_IMAGE_INVALID, ESP_ERR_INVALID_RESPONSE, ESP_FAIL},
 };
 
 use log::{error, info};
+use mime::APPLICATION_OCTET_STREAM;
 use serde::{Deserialize, Serialize};
-use tokio::{net::TcpListener, sync::Mutex, time::sleep};
+use tokio::{
+    net::TcpListener,
+    sync::{oneshot, Mutex},
+    time::sleep,
+};
 use tower_http::cors::{self, CorsLayer};
 
 #[macro_export]
@@ -31,13 +43,14 @@ macro_rules! esp_err {
     };
 }
 
-const FIRMWARE_MAX_SIZE: u64 = 0x1f0000; // Max size of each app partition
-const FIRMWARE_MIN_SIZE: u64 = size_of::<FirmwareInfo>() as u64 + 1024;
+const FIRMWARE_DOWNLOAD_CHUNK_SIZE: usize = 1024 * 20;
+const FIRMWARE_MAX_SIZE: usize  = 0x1f0000; // Max size of each app partition
+const FIRMWARE_MIN_SIZE: usize  = size_of::<FirmwareInfo>() + 1024;
 
 const BIND_IP: &str = "0.0.0.0";
 const PORT: u16 = 80;
 
-const NVS_NS: &str = "storage";
+pub const NVS_NS: &str = "storage";
 const NVS_TAG_MOTORS: &str = "motors";
 
 type MotorPin = PinDriver<'static, AnyIOPin, Output>;
@@ -296,22 +309,14 @@ async fn handle_ota(Json(req): Json<OtaReq>) {
     };
 }
 
-async fn do_ota(uri: Uri) -> Result<(), EspError> {
-    let mut resp = match reqwest::get(uri.to_string()).await {
-        Ok(r) => r,
-        Err(e) => {
-            error!("Error requesting OTA image: {e}");
-            return esp_err!(ESP_FAIL);
-        }
-    };
-
-    if !resp.status().is_success() {
+fn handle_ota_resp(mut resp: Response<&mut EspHttpConnection>) -> Result<(), EspError> {
+    if resp.status() != 200 {
         error!("Unexpected HTTP response: {}", resp.status());
         return esp_err!(ESP_ERR_INVALID_RESPONSE);
     }
 
     // Check firmware size
-    let file_size = resp.content_length().unwrap_or_default();
+    let file_size = resp.content_len().unwrap_or(0) as usize;
     if file_size <= FIRMWARE_MIN_SIZE {
         error!("Firmware size ({file_size}) is too small!");
         return esp_err!(ESP_ERR_IMAGE_INVALID);
@@ -323,17 +328,86 @@ async fn do_ota(uri: Uri) -> Result<(), EspError> {
 
     // Start OTA
     let mut ota = EspOta::new()?;
+    info!(
+        "CURRENT SLOTS (BOOT, RUN, UPD): ({}, {}, {})",
+        ota.get_boot_slot()?.label,
+        ota.get_running_slot()?.label,
+        ota.get_update_slot()?.label
+    );
+
     let mut upd = ota.initiate_update()?;
-    let mut written: usize = 0;
-    while let Ok(Some(chunk)) = resp.chunk().await {
-        upd.write(&chunk[..])?;
-        written += chunk.len();
-        info!(
-            "OTA progress: {:.2}%",
-            100.0 * written as f32 / file_size as f32
-        );
+    let mut buf = vec![0; FIRMWARE_DOWNLOAD_CHUNK_SIZE];
+    let mut total: usize = 0;
+    let ota_res = loop {
+        let n = resp.read(&mut buf).unwrap_or_default();
+        total += n;
+
+        if n > 0 {
+            if let Err(e) = upd.write(&buf[..n]) {
+                error!("Failed to write OTA chunk: {e:?}");
+                break Err(e);
+            }
+            info!(
+                "OTA progress: {:.2}%",
+                100.0 * total as f32 / file_size as f32
+            );
+        }
+
+        if total >= file_size {
+            break Ok(());
+        }
+    };
+
+    // TODO: checksum
+
+    if ota_res.is_err() || total < file_size {
+        error!("Error while writing OTA, aborting");
+        error!("Total of {total} out of {file_size} bytes received");
+        return upd.abort();
     }
 
     // OTA was successful if we reach this
     upd.complete()
+}
+
+async fn do_ota(uri: Uri) -> Result<(), EspError> {
+    let (signal_tx, signal_rx) = oneshot::channel();
+    let req_task = tokio::task::spawn_blocking(move || -> Result<(), EspError> {
+            let mut client = Client::wrap(
+                EspHttpConnection::new(&Configuration {
+                    buffer_size: Some(4096),
+                    ..Default::default()
+                })?,
+            );
+
+            let uri_str = uri.to_string();
+            let headers = [(ACCEPT.as_str(), APPLICATION_OCTET_STREAM.as_ref())];
+            let res = match client.request(Method::Get, &uri_str, &headers) {
+                Ok(req) => {
+                    match req.submit() {
+                        Ok(resp) => handle_ota_resp(resp),
+                        Err(e) => {
+                            error!("Failed to send request! {e:?}");
+                            esp_err!(ESP_FAIL)
+                        }
+                    }
+                },
+                Err(e) => {
+                    error!("Failed to build request! {e:?}");
+                    esp_err!(ESP_FAIL)
+                }
+            };
+
+            // Signal the outer await to exit before this thread is done
+            signal_tx.send(res).unwrap();
+            res
+        });
+
+    // await a signal instead of waiting on the thread so other tasks can keep running
+    let ota_success = signal_rx.await.unwrap();
+    if let Err(e) = req_task.await {
+        error!("Blocking OTA task didn't join properly ???: {e:?}");
+    }
+
+    ota_success
 }

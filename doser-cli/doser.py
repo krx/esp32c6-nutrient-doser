@@ -12,16 +12,16 @@ CHARTS: dict = json.loads(FEED_CHART.read_text())
 class URL(click.ParamType):
     name = "url"
 
-    def convert(self, val, param, ctx):
-        if not isinstance(val, tuple):
-            parsed = urlparse(val)
+    def convert(self, value, param, ctx):
+        if not isinstance(value, tuple):
+            parsed = urlparse(value)
             if parsed.scheme not in ("http", "https"):
                 self.fail(
                     f"invalid URL scheme ({parsed.scheme}). Only HTTP URLs are allowed",
                     param,
                     ctx,
                 )
-        return val
+        return value
 
 
 @click.command()
