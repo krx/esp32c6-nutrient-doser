@@ -1,28 +1,31 @@
 [package]
 name = "nutrient-doser"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.88"
 version = "0.2.0"
 authors = ["Kareem ElFaramawi <kareem02@gmail.com>"]
 resolver = "2"
 
 [dependencies]
-anyhow = "1.0.98"
+anyhow = "1.0.100"
 embedded-svc = "0.28.1"
-axum = "0.8.4"
-esp-idf-svc = { version = "0.51", features = ["critical-section", "embassy-time-driver", "embassy-sync"] }
+axum = { version = "0.8.6", features = ["macros"] }
+esp-idf-svc = "0.51.0"
 http = "1.3.1"
 http-serde-ext = "1.0.2"
-log = "0.4"
+log = "0.4.28"
 mime = "0.3.17"
-serde = "1.0.219"
-serde_json = "1.0.140"
-tokio = { version = "1.45.1", features = ["rt", "net", "sync", "time"] }
+serde = "1.0.228"
+serde_json = "1.0.145"
+tokio = { version = "1.48.0", features = ["rt", "net", "sync", "time"] }
 toml-cfg = "0.2.0"
 tower-http = { version = "0.6.6", features = ["cors"] }
+ws2812-esp32-rmt-driver = { version = "0.13.0", features = ["smart-leds-trait"] }
+smart-leds = "0.4.0"
+stepgen = { git = "https://github.com/idubrov/stepgen", version = "0.1.3" }
 
 [build-dependencies]
-embuild = "0.33"
+embuild = "0.33.1"
 
 [features]
 default = []
