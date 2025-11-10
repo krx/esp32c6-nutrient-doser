@@ -1,0 +1,103 @@
+{
+  "name": "MaxiSeries (indoor)",
+  "nutrients": [
+    {
+      "name": "MaxiGro",
+      "unit": "g",
+      "color": "#91cc75"
+    },
+    {
+      "name": "MaxiBloom",
+      "unit": "g",
+      "color": "#ea7ccc"
+    },
+    {
+      "name": "CALiMAGic",
+      "unit": "mL",
+      "color": "#fac858"
+    }
+  ],
+  "charts": {
+    "light": {
+      "Seedling": {
+        "MaxiGro": 1.35,
+        "MaxiBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "MaxiGro": 2.7,
+        "MaxiBloom": 0,
+        "CALiMAGic": 1.8
+      },
+      "Late Growth": {
+        "MaxiGro": 4.0,
+        "MaxiBloom": 0,
+        "CALiMAGic": 1.8
+      },
+      "Early-Mid Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 4.0,
+        "CALiMAGic": 2.5
+      },
+      "Late Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 3.8,
+        "CALiMAGic": 1.5
+      }
+    },
+    "medium": {
+      "Seedling": {
+        "MaxiGro": 1.5,
+        "MaxiBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "MaxiGro": 3.0,
+        "MaxiBloom": 0,
+        "CALiMAGic": 2.0
+      },
+      "Late Growth": {
+        "MaxiGro": 4.5,
+        "MaxiBloom": 0,
+        "CALiMAGic": 2.0
+      },
+      "Early-Mid Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 4.5,
+        "CALiMAGic": 2.8
+      },
+      "Late Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 4.5,
+        "CALiMAGic": 2.0
+      }
+    },
+    "aggressive": {
+      "Seedling": {
+        "MaxiGro": 1.9,
+        "MaxiBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "MaxiGro": 3.8,
+        "MaxiBloom": 0,
+        "CALiMAGic": 2.5
+      },
+      "Late Growth": {
+        "MaxiGro": 5.5,
+        "MaxiBloom": 0,
+        "CALiMAGic": 2.5
+      },
+      "Early-Mid Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 5.7,
+        "CALiMAGic": 3.5
+      },
+      "Late Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 5.5,
+        "CALiMAGic": 2.0
+      }
+    }
+  }
+}

@@ -1,28 +1,28 @@
 mod app;
+mod rmt_drv8825;
+mod util;
 
-use app::NVS_NS;
+use std::sync::{Arc, Mutex};
+
 use esp_idf_svc::{
     eventloop::EspSystemEventLoop,
     hal::{
-        gpio::{AnyIOPin, Output, PinDriver},
+        gpio::AnyOutputPin,
         prelude::Peripherals,
+        rmt::{PinState, TxRmtConfig, TxRmtDriver},
     },
     io::vfs::MountedEventfs,
-    ipv4::{
-        ClientConfiguration as IpClientConfiguration,
-        Configuration as IpConfiguration,
-        DHCPClientSettings,
-    },
-    netif::{EspNetif, NetifConfiguration, NetifStack},
-    nvs::{EspDefaultNvs, EspDefaultNvsPartition},
-    ota::EspOta,
+    netif::{EspNetif, NetifStack},
+    nvs::EspDefaultNvsPartition,
     sys::EspError,
     timer::EspTimerService,
     wifi::{AsyncWifi, ClientConfiguration, Configuration, EspWifi, WifiDriver},
 };
 use log::{info, warn};
+use smart_leds::{brightness, colors, gamma};
+use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
-const HOSTNAME_KEY: &str = "HOSTNAME";
+use crate::rmt_drv8825::DRV8825;
 
 #[toml_cfg::toml_config]
 pub struct Config {
@@ -32,49 +32,11 @@ pub struct Config {
     wifi_pass: &'static str,
 }
 
-fn set_ota_valid() {
-    let mut ota = EspOta::new().expect("Instantiate EspOta");
-    ota.mark_running_slot_valid().expect("Mark app slot as valid");
-}
-
-fn get_netif_with_hostname(nvsp: EspDefaultNvsPartition) -> anyhow::Result<EspNetif> {
-    let mut nvs = EspDefaultNvs::new(nvsp, NVS_NS, true)?;
-    let hostname = match option_env!("HOSTNAME") {
-        Some(h) => h.to_owned(),
-        None => match nvs.str_len(HOSTNAME_KEY)? {
-            Some(len) => {
-                let mut buf = vec![0_u8; len];
-                match nvs.get_str(HOSTNAME_KEY, buf.as_mut_slice())? {
-                    Some(h) => h.to_owned(),
-                    None => String::new(),
-                }
-            }
-            None => String::new(),
-        },
-    };
-
-    if !hostname.is_empty() {
-        warn!("Setting hostname to {hostname}");
-        nvs.set_str(HOSTNAME_KEY, hostname.as_str())?;
-
-        Ok(EspNetif::new_with_conf(&NetifConfiguration {
-            ip_configuration: Some(IpConfiguration::Client(IpClientConfiguration::DHCP(
-                DHCPClientSettings {
-                    hostname: Some(hostname.as_str().try_into().unwrap()),
-                },
-            ))),
-            ..NetifConfiguration::wifi_default_client()
-        })?)
-    } else {
-        Ok(EspNetif::new(NetifStack::Sta)?)
-    }
-}
-
 fn main() -> anyhow::Result<()> {
     esp_idf_svc::sys::link_patches();
     esp_idf_svc::log::EspLogger::initialize_default();
     let _event_fds = MountedEventfs::mount(5).unwrap();
-    set_ota_valid();
+    util::set_ota_valid();
 
     let peripherals = Peripherals::take()?;
     let sys_loop = EspSystemEventLoop::take()?;
@@ -84,29 +46,48 @@ fn main() -> anyhow::Result<()> {
     info!("Initializing Wi-Fi...");
     let wifi = AsyncWifi::wrap(
         EspWifi::wrap_all(
-            WifiDriver::new(peripherals.modem, sys_loop.clone(), Some(nvs.clone()))?, 
-            get_netif_with_hostname(nvs.clone())?,
+            WifiDriver::new(peripherals.modem, sys_loop.clone(), Some(nvs.clone()))?,
+            util::get_netif_with_hostname(nvs.clone())?,
             EspNetif::new(NetifStack::Ap)?,
         )?,
         sys_loop,
         timer_service.clone(),
     )?;
 
-    let motor_pins = vec![
-        PinDriver::output(AnyIOPin::from(peripherals.pins.gpio21))?,
-        PinDriver::output(AnyIOPin::from(peripherals.pins.gpio2))?,
-        PinDriver::output(AnyIOPin::from(peripherals.pins.gpio1))?,
-        PinDriver::output(AnyIOPin::from(peripherals.pins.gpio0))?,
+    // There are a limited number of RMT TX channels available, for the esp32c6
+    // there are only 2. To get around this, a single TX driver is shared across
+    // all steppers, which imposes these limitations:
+    // 1. Only one stepper can be run at a time due to separate calibrations,
+    //    so the driver is put behind a mutex
+    // 2. Only the EN pin of the motor being run should be enabled, all others disabled
+    let tx_conf = TxRmtConfig::default()
+        .idle(Some(PinState::Low))
+        .clock_divider(160); // 80MHz -> 500kHz
+    let tx = Arc::new(Mutex::new(TxRmtDriver::new(
+        peripherals.rmt.channel1,
+        peripherals.pins.gpio5,
+        &tx_conf,
+    )?));
+    let drivers = vec![
+        DRV8825::new(
+            AnyOutputPin::from(peripherals.pins.gpio6),
+            AnyOutputPin::from(peripherals.pins.gpio4),
+            tx.clone(),
+        )?,
+        DRV8825::new(
+            AnyOutputPin::from(peripherals.pins.gpio9),
+            AnyOutputPin::from(peripherals.pins.gpio18),
+            tx.clone(),
+        )?,
+        DRV8825::new(
+            AnyOutputPin::from(peripherals.pins.gpio19),
+            AnyOutputPin::from(peripherals.pins.gpio20),
+            tx.clone(),
+        )?,
     ];
 
-    // enable external antenna
-    let mut gpio3 = PinDriver::output(peripherals.pins.gpio3)?;
-    gpio3.set_low()?;
-    let mut gpio14 = PinDriver::output(peripherals.pins.gpio14)?;
-    gpio14.set_high()?;
-
     // status LED
-    let user_led = PinDriver::output(AnyIOPin::from(peripherals.pins.gpio15))?;
+    let user_led = Ws2812Esp32Rmt::new(peripherals.rmt.channel0, peripherals.pins.gpio8)?;
 
     tokio::runtime::Builder::new_current_thread()
         .thread_stack_size(6 * 1024)
@@ -119,7 +100,7 @@ fn main() -> anyhow::Result<()> {
             wifi_loop.initial_connect().await?;
 
             // Launch all other tasks
-            tokio::spawn(app::run(motor_pins));
+            tokio::spawn(app::run(drivers));
 
             // Keep this task on the wifi loop
             wifi_loop.stay_connected().await
@@ -131,7 +112,7 @@ fn main() -> anyhow::Result<()> {
 // From https://github.com/jasta/esp32-tokio-demo
 pub struct WifiLoop<'a> {
     wifi: AsyncWifi<EspWifi<'a>>,
-    user_led: PinDriver<'a, AnyIOPin, Output>,
+    user_led: Ws2812Esp32Rmt<'a>,
 }
 
 impl WifiLoop<'_> {
@@ -166,7 +147,9 @@ impl WifiLoop<'_> {
             self.wifi.wifi_wait(|wifi| wifi.is_up(), None).await?;
 
             info!("Connecting to Wi-Fi...");
-            self.user_led.set_low()?;
+            self.user_led
+                .write_nocopy(brightness(gamma([colors::ORANGE].into_iter()), 64))
+                .unwrap();
             match self.wifi.connect().await {
                 Ok(_) => (),
                 Err(e) => {
@@ -180,7 +163,9 @@ impl WifiLoop<'_> {
                 .ip_wait_while(|wifi| wifi.is_up().map(|s| !s), None)
                 .await?;
 
-            self.user_led.set_high()?;
+            self.user_led
+                .write_nocopy(brightness(gamma([colors::LIME].into_iter()), 64))
+                .unwrap();
             if exit_after_first_connect {
                 return Ok(());
             }

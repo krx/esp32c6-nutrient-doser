@@ -6,11 +6,11 @@ import type { MotorConfig } from '~~/shared/types/doser';
 
 const doser = defineModel<DoserInfo>('doser', { required: true });
 const motor = defineModel<MotorConfig>({ required: true });
-const wakelock = reactive(useWakeLock());
 
 const calibration_modal = ref(false);
-const prime_extra_modal = ref(false);
-const prime_extra_ml = ref(0.0);
+const priming_modal = ref(false);
+const dispense_modal = ref(false);
+const dispense_amt = ref(1.0);
 const settings = ref<DropdownMenuItem[]>([
   {
     label: 'Calibrate',
@@ -18,41 +18,27 @@ const settings = ref<DropdownMenuItem[]>([
     onSelect: (_) => (calibration_modal.value = true),
   },
   {
-    label: 'Prime extra amount',
+    label: 'Priming settings',
     icon: 'i-tabler-droplet-plus',
-    onSelect: (_) => (prime_extra_modal.value = true),
+    onSelect: (_) => (priming_modal.value = true),
+  },
+  {
+    label: 'Dispense',
+    icon: 'i-lucide-droplets',
+    onSelect: (_) => (dispense_modal.value = true),
   },
 ]);
 
-async function prime_one(m: MotorConfig) {
-  await wakelock.request('screen');
-  await api.add_doser(doser.value);
-  await dapi.dispense(doser.value.url, {
-    reqs: [
-      {
-        motor_idx: m.idx,
-        ml: m.prime_ml!,
-      },
-    ],
-  });
-  await wakelock.release();
+function add_priming_steps(steps: number) {
+  motor.value.prime_steps = Math.max(0, motor.value.prime_steps! + steps);
 }
 
-async function prime_extra(m: MotorConfig, extra_ml: number) {
-  m.prime_ml! += extra_ml; // TODO: keep value in range
-
-  await wakelock.request('screen');
+async function set_priming_steps() {
   await api.add_doser(doser.value);
-  await dapi.dispense(doser.value.url, {
-    reqs: [
-      {
-        motor_idx: m.idx,
-        ml: extra_ml,
-      },
-    ],
+  await dapi.update_prime(doser.value.url, {
+    motor_idx: motor.value.idx,
+    prime_steps: motor.value.prime_steps!,
   });
-  await wakelock.release();
-  prime_extra_modal.value = false;
 }
 </script>
 
@@ -66,51 +52,64 @@ async function prime_extra(m: MotorConfig, extra_ml: number) {
       :label="`Motor #${motor.idx}`"
       :ui="{ label: 'text-(--ui-color-neutral-500)' }"
     />
-    <UButtonGroup>
+    <UFieldGroup class="w-full">
       <UButton
-        :label="`Prime ${motor.prime_ml}mL`"
-        icon="i-lucide-droplet"
+        label="Unprime"
+        icon="i-lucide-droplet-off"
         color="neutral"
         variant="soft"
-        class="w-full min-w-34"
+        class="w-full"
         loading-auto
-        @click="prime_one(motor)"
+        @click="dapi.unprime(doser.url, { motor_idx: motor.idx })"
       />
-      <UPopover
-        arrow
-        :content="{
-          align: 'center',
-          side: 'bottom',
-        }"
-      >
-        <UButton icon="i-lucide-chevron-down" color="neutral" variant="subtle" />
-        <template #content>
-          <div class="flex flex-col items-center min-w-48 p-4 gap-4">
-            <UInputNumber v-model="motor.prime_ml" :min="0" :max="20" :step="0.1" />
-            <USlider v-model="motor.prime_ml" :min="0" :max="20" :step="0.1" />
-          </div>
-        </template>
-      </UPopover>
       <UDropdownMenu arrow :items="settings">
         <UButton icon="i-lucide-settings" color="neutral" variant="subtle" />
       </UDropdownMenu>
-    </UButtonGroup>
+    </UFieldGroup>
   </UCard>
   <UModal v-model:open="calibration_modal" :dismissible="false" title="Motor Calibration">
     <template #body>
       <MotorCalibration v-model="motor" v-model:doser="doser" v-model:modal="calibration_modal" />
     </template>
   </UModal>
-  <UModal v-model:open="prime_extra_modal" title="Prime extra amount" class="max-w-60">
+  <UModal v-model:open="priming_modal" title="Priming Setup">
     <template #body>
       <div class="flex flex-col items-center text-center w-full gap-4">
-        <UInputNumber v-model="prime_extra_ml" :min="0" :max="20 - motor.prime_ml!" :step="0.1" />
+        <UFieldGroup>
+          <UInputNumber v-model="motor.prime_steps" :min="0" :step="1" />
+          <UBadge label="steps" variant="subtle" color="neutral" />
+        </UFieldGroup>
+        <div class="flex flex-row items-center text-center gap-2">
+          <UButton label="-1000" @click="add_priming_steps(-1000)" />
+          <UButton label="-100" @click="add_priming_steps(-100)" />
+          <UButton label="-10" @click="add_priming_steps(-10)" />
+          <UButton label="+10" @click="add_priming_steps(10)" />
+          <UButton label="+100" @click="add_priming_steps(100)" />
+          <UButton label="+1000" @click="add_priming_steps(1000)" />
+        </div>
         <UButton
-          label="Prime"
+          label="Set"
           leading-icon="i-tabler-droplet-plus"
           :block="true"
           loading-auto
-          @click="prime_extra(motor, prime_extra_ml)"
+          @click="set_priming_steps"
+        />
+      </div>
+    </template>
+  </UModal>
+  <UModal v-model:open="dispense_modal" :dismissible="false" :title="`Dispense ${motor.name}`">
+    <template #body>
+      <div class="flex flex-col items-center text-center w-full gap-4">
+        <UFieldGroup>
+          <UInputNumber v-model="dispense_amt" :min="0.0" :step="1.0" :step-snapping="false" />
+          <UBadge label="mL" variant="subtle" color="neutral" />
+        </UFieldGroup>
+        <UButton
+          label="Dispense"
+          leading-icon="i-lucide-droplets"
+          :block="true"
+          loading-auto
+          @click="dapi.dispense(doser.url, { reqs: [{ motor_idx: motor.idx, ml: dispense_amt }] })"
         />
       </div>
     </template>

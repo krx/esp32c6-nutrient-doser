@@ -1,0 +1,81 @@
+POST http://nutrient-doser-v2.lan/ota HTTP/1.1
+content-type: application/json
+
+{
+    "uri": "http://KPC.lan:8000/ota.bin"
+}
+
+###
+GET http://nutrient-doser-v2.lan/full-status HTTP/1.1
+
+###
+GET http://nutrient-doser-v2.lan/status HTTP/1.1
+
+###
+POST http://nutrient-doser-v2.lan/dispense HTTP/1.1
+content-type: application/json
+
+{
+    "reqs": [
+        {
+            "motor_idx": 0,
+            "ml": 2
+        },
+        {
+            "motor_idx": 1,
+            "ml": 2
+        },
+        {
+            "motor_idx": 2,
+            "ml": 2
+        }
+    ]
+}
+
+###
+POST http://nutrient-doser-v2.lan/update-prime HTTP/1.1
+content-type: application/json
+
+{
+    "motor_idx": 2,
+    "prime_steps": 2675
+}
+
+###
+POST http://nutrient-doser-v2.lan/unprime HTTP/1.1
+content-type: application/json
+
+{
+    "motor_idx": 2
+}
+
+###
+POST http://nutrient-doser-v2.lan/unprime-all HTTP/1.1
+
+###
+POST http://nutrient-doser-v2.lan/calibrate HTTP/1.1
+content-type: application/json
+
+{
+    "motor_idx": 0,
+    "expected": 15.0,
+    "actual": 15.04
+}
+
+###
+POST http://nutrient-doser-v2.lan/debug/step HTTP/1.1
+content-type: application/json
+
+{
+    "motor_idx": 2,
+    "steps": 200
+}
+
+###
+POST http://nutrient-doser-v2.lan/debug/calibrate HTTP/1.1
+content-type: application/json
+
+{
+    "motor_idx": 2,
+    "value": 0.00032
+}

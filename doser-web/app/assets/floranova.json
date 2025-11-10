@@ -1,0 +1,103 @@
+{
+  "name": "FloraNova",
+  "nutrients": [
+    {
+      "name": "FloraNovaGrow",
+      "unit": "mL",
+      "color": "#91cc75"
+    },
+    {
+      "name": "FloraNovaBloom",
+      "unit": "mL",
+      "color": "#ea7ccc"
+    },
+    {
+      "name": "CALiMAGic",
+      "unit": "mL",
+      "color": "#fac858"
+    }
+  ],
+  "charts": {
+    "light": {
+      "Seedling": {
+        "FloraNovaGrow": 1.75,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "FloraNovaGrow": 3.5,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 1.0
+      },
+      "Late Growth": {
+        "FloraNovaGrow": 5.3,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 2.0
+      },
+      "Early-Mid Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 5.3,
+        "CALiMAGic": 1.8
+      },
+      "Late Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 4.4,
+        "CALiMAGic": 1.8
+      }
+    },
+    "medium": {
+      "Seedling": {
+        "FloraNovaGrow": 2.0,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "FloraNovaGrow": 4.0,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 1.2
+      },
+      "Late Growth": {
+        "FloraNovaGrow": 6.0,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 2.4
+      },
+      "Early-Mid Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 6.0,
+        "CALiMAGic": 2.0
+      },
+      "Late Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 5.0,
+        "CALiMAGic": 2.0
+      }
+    },
+    "aggressive": {
+      "Seedling": {
+        "FloraNovaGrow": 2.5,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 0
+      },
+      "Early Growth": {
+        "FloraNovaGrow": 5.0,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 1.5
+      },
+      "Late Growth": {
+        "FloraNovaGrow": 7.5,
+        "FloraNovaBloom": 0,
+        "CALiMAGic": 3.0
+      },
+      "Early-Mid Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 7.5,
+        "CALiMAGic": 2.5
+      },
+      "Late Bloom": {
+        "FloraNovaGrow": 0,
+        "FloraNovaBloom": 6.3,
+        "CALiMAGic": 2.5
+      }
+    }
+  }
+}

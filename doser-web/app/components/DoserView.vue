@@ -1,60 +1,31 @@
 <script setup lang="ts">
-import * as api from '@/utils/api';
 import * as dapi from '@/utils/doser_api';
-import raw_chart from '@/assets/floragro_chart.json';
 import type { DoserInfo } from '#shared/types/doser';
-import type { FeedChart, Nutrient } from '#shared/types/feedchart';
-import type { DoseSolutionReq, VolUnit } from '@/types/doser_api';
+import type { DoseSolutionReq } from '@/types/doser_api';
 import _ from 'lodash';
+import type { Chart, VolUnit } from '~/types/feedchart';
 
 const doser = defineModel<DoserInfo>({ required: true });
-const wakelock = reactive(useWakeLock());
+const all_charts = defineModel<{ [key: string]: Chart }>('all-charts', { required: true });
 
-const chart = raw_chart as FeedChart;
-const schedule = ref<string>(Object.keys(chart)[1]!);
-const stage = ref<string>(Object.keys(chart[schedule.value]!)[0]!);
-const nutrients = new Set<Nutrient>();
-Object.values(chart).forEach((_sched) => {
-  Object.values(_sched).forEach((_stage) => {
-    Object.keys(_stage).forEach((k) => nutrients.add(k));
-  });
-});
+const chart = ref(all_charts.value[doser.value.chart]!);
+const schedule = ref(default_schedule());
+const stage = ref(default_stage());
 
-const { num_motors } = await dapi.get_info(doser.value.url);
-if (num_motors !== doser.value.motors.length) {
-  doser.value.motors = [];
-  _.range(num_motors).forEach((i) => {
-    doser.value.motors.push({
-      idx: i,
-      prime_ml: 1.0,
-    });
-  });
+function default_schedule(): string {
+  return Object.keys(chart.value!.charts)[0]!;
 }
 
-function all_motors_configured() {
-  return doser.value.motors.every((m) => m.name);
-}
-
-async function prime_all() {
-  await wakelock.request('screen');
-  await api.add_doser(doser.value);
-  await dapi.dispense(doser.value.url, {
-    reqs: doser.value.motors.map((m) => {
-      return {
-        motor_idx: m.idx,
-        ml: m.prime_ml!,
-      };
-    }),
-  });
-  await wakelock.release();
+function default_stage(): string {
+  return Object.keys(chart.value!.charts[schedule.value]!)[0]!;
 }
 
 const target_amount = ref(1.0);
 const target_unit = ref<VolUnit>('gal');
-const units = ref<VolUnit[]>(['mL', 'L', 'gal']);
+const units = ref<VolUnit[]>(['mL', 'L', 'gal', 'fl oz']);
 
 async function dispense_solution() {
-  const table = chart[schedule.value]![stage.value]!;
+  const table = chart.value!.charts[schedule.value]![stage.value]!;
   const req: DoseSolutionReq = {
     nutrients: Object.entries(table).map(([nutrient, amount]) => {
       return {
@@ -64,33 +35,14 @@ async function dispense_solution() {
       };
     }),
     target_amount: target_amount.value,
-    target_unit: _.capitalize(target_unit.value),
+    target_unit: target_unit.value,
   };
-  await wakelock.request('screen');
   await dapi.dose_solution(doser.value.url, req);
-  await wakelock.release();
 }
 </script>
 
 <template>
-  <UContainer v-if="!all_motors_configured()">
-    <h2>The following motors need to have a nutrient assigned:</h2>
-    <UButtonGroup
-      v-for="motor in doser.motors.filter((m) => !m.name)"
-      :key="motor.idx"
-      class="w-full"
-    >
-      <UBadge :label="`Motor #${motor.idx}`" />
-      <USelect
-        v-model="motor.name"
-        :items="Array.from(nutrients)"
-        class="w-full"
-        @change="api.add_doser(doser)"
-      />
-    </UButtonGroup>
-  </UContainer>
-
-  <div v-else class="flex flex-col w-full gap-4">
+  <div class="flex flex-col w-full gap-4">
     <UCard variant="subtle">
       <template #header>
         <UContainer class="flex items-center justify-center">
@@ -111,10 +63,10 @@ async function dispense_solution() {
         <UContainer class="flex items-center justify-center">
           <UButton
             loading-auto
-            label="Prime all motors"
-            icon="i-lucide-droplets"
+            label="Unprime all motors"
+            icon="i-lucide-droplet-off"
             size="xl"
-            @click="prime_all"
+            @click="dapi.unprime_all(doser.url)"
           />
         </UContainer>
       </template>
@@ -132,7 +84,7 @@ async function dispense_solution() {
           class="w-full"
           size="xl"
           :items="
-            Object.keys(chart).map((k) => {
+            Object.keys(chart!.charts).map((k) => {
               return { label: _.capitalize(k), value: k };
             })
           "
@@ -143,7 +95,7 @@ async function dispense_solution() {
           class="w-full"
           size="xl"
           :items="
-            Object.keys(chart[schedule]!).map((k) => {
+            Object.keys(chart!.charts[schedule]!).map((k) => {
               return { label: _.capitalize(k), value: k };
             })
           "
@@ -153,7 +105,7 @@ async function dispense_solution() {
           :content="false"
         />
 
-        <UButtonGroup class="w-full">
+        <UFieldGroup class="w-full">
           <UBadge label="Target amount" color="neutral" variant="subtle" size="xl" />
           <UInputNumber v-model="target_amount" :min="0" :step="0.1" class="w-full" size="xl" />
           <USelect
@@ -164,7 +116,7 @@ async function dispense_solution() {
             arrow
             size="xl"
           />
-        </UButtonGroup>
+        </UFieldGroup>
       </UContainer>
       <template #footer>
         <UContainer class="flex items-center justify-center">
@@ -178,5 +130,12 @@ async function dispense_solution() {
         </UContainer>
       </template>
     </UCard>
+
+    <NutrientChart
+      v-model:chart="chart"
+      v-model:stage="chart.charts[schedule]![stage]!"
+      v-model:amount="target_amount"
+      v-model:unit="target_unit"
+    />
   </div>
 </template>

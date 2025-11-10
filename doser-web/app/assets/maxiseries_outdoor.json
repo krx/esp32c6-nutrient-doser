@@ -1,0 +1,59 @@
+{
+  "name": "MaxiSeries (outdoor)",
+  "nutrients": [
+{
+      "name": "MaxiGro",
+      "unit": "g",
+      "color": "#91cc75"
+    },
+    {
+      "name": "MaxiBloom",
+      "unit": "g",
+      "color": "#ea7ccc"
+    }
+  ],
+  "charts": {
+    "light": {
+      "Seedling": {
+        "MaxiGro": 2.3,
+        "MaxiBloom": 0
+      },
+      "Grow": {
+        "MaxiGro": 4.6,
+        "MaxiBloom": 0
+      },
+      "Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 3.9
+      }
+    },
+    "medium": {
+      "Seedling": {
+        "MaxiGro": 2.6,
+        "MaxiBloom": 0
+      },
+      "Grow": {
+        "MaxiGro": 5.2,
+        "MaxiBloom": 0
+      },
+      "Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 4.4
+      }
+    },
+    "aggressive": {
+      "Seedling": {
+        "MaxiGro": 3.25,
+        "MaxiBloom": 0
+      },
+      "Grow": {
+        "MaxiGro": 6.5,
+        "MaxiBloom": 0
+      },
+      "Bloom": {
+        "MaxiGro": 0,
+        "MaxiBloom": 5.5
+      }
+    }
+  }
+}

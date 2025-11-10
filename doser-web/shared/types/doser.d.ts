@@ -1,14 +1,11 @@
 export interface MotorConfig {
   idx: number;
   name?: string;
-  prime_ml?: number;
-  // TODO: image?
+  prime_steps?: number;
 }
 
 export interface DoserInfo {
-  // id: number;
   url: string;
   motors: MotorConfig[];
+  chart: string;
 }
-
-// export type DoserMap = Map<string, DoserInfo>;

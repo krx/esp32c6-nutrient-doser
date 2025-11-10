@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import * as api from '@/utils/api';
 import _ from 'lodash';
+import type { Chart } from '~/types/feedchart';
 import type { DoserInfo } from '~~/shared/types/doser';
 
 const all_dosers = defineModel<DoserInfo[]>('dosers', { required: true });
 const selected = defineModel<DoserInfo | undefined>('selected', { required: true });
+const all_charts = defineModel<{ [key: string]: Chart }>('all-charts', { required: true });
 const _sel = ref('');
 const add_modal_opened = ref(false);
 
@@ -18,13 +20,15 @@ function remove_doser() {
 </script>
 
 <template>
-  <UButtonGroup>
+  <UFieldGroup>
     <UModal v-model:open="add_modal_opened" title="Add new doser">
       <UButton icon="lucide:plus" label="New" />
       <template #body>
-        <div class="flex flex-col items-center justify-center py-12">
-          <AddDoser v-model="all_dosers" v-model:modal="add_modal_opened" />
-        </div>
+        <AddDoser
+          v-model="all_dosers"
+          v-model:modal="add_modal_opened"
+          v-model:all-charts="all_charts"
+        />
       </template>
     </UModal>
     <USelect
@@ -34,5 +38,5 @@ function remove_doser() {
       @change="selected = all_dosers.find((d) => d.url === _sel)"
     />
     <UButton :disabled="_sel === ''" color="error" icon="lucide:trash-2" @click="remove_doser" />
-  </UButtonGroup>
+  </UFieldGroup>
 </template>
