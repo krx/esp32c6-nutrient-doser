@@ -154,7 +154,7 @@ impl AppState {
         };
     }
 
-    async fn set_status(&mut self, status: AppStatus) {
+    async fn set_status(&self, status: AppStatus) {
         *self.status.write().await = status;
     }
 }
@@ -221,10 +221,12 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
         .route("/", get(root))
         .route("/full-status", get(get_full_status))
         .route("/status", get(get_status))
-        .route("/debug-step", post(debug_step))
+        .route("/debug/step", post(debug_step))
+        .route("/debug/calibrate", post(debug_calibrate))
         .route("/dispense", post(dispense))
         .route("/update-prime", post(update_prime))
         .route("/unprime", post(unprime))
+        .route("/unprime-all", post(unprime_all))
         .route("/calibrate", post(calibrate))
         .route("/dose", post(dose_solution))
         .route("/reboot", get(reboot))
@@ -323,9 +325,9 @@ async fn dispense(
         match state.motors.lock().await.get_mut(r.motor_idx) {
             Some(motor) => {
                 info!("Dispensing {}ml of liquid #{}", r.ml, r.motor_idx);
-                *state.status.write().await = AppStatus::RUNNING;
+                state.set_status(AppStatus::RUNNING).await;
                 motor.dispense_ml(r.ml).await;
-                *state.status.write().await = AppStatus::IDLE;
+                state.set_status(AppStatus::IDLE).await;
             }
             None => res = StatusCode::BAD_REQUEST,
         }
@@ -343,20 +345,40 @@ async fn debug_step(
     State(state): State<AppState>,
     Json(req): Json<DebugStepReq>
 ) -> StatusCode {
-    let mut _motors = state.motors.lock().await;
-    let res = match _motors.get_mut(req.motor_idx) {
+    let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
             if let Some(drv) = &mut motor.driver {
-                *state.status.write().await = AppStatus::RUNNING;
+                state.set_status(AppStatus::RUNNING).await;
                 drv.step_by(req.steps).await.unwrap();
-                *state.status.write().await = AppStatus::IDLE;
+                state.set_status(AppStatus::IDLE).await;
             }
             StatusCode::OK
         }
         None => StatusCode::BAD_REQUEST,
     };
 
-    drop(_motors);
+    state.save_state().await;
+    res
+}
+
+#[derive(Deserialize)]
+struct DebugCalibrateReq {
+    motor_idx: usize,
+    value: f64,
+}
+
+async fn debug_calibrate(
+    State(state): State<AppState>,
+    Json(req): Json<DebugCalibrateReq>
+) -> StatusCode {
+    let res = match state.motors.lock().await.get_mut(req.motor_idx) {
+        Some(motor) => {
+            motor.ml_per_step = req.value;
+            StatusCode::OK
+        }
+        None => StatusCode::BAD_REQUEST,
+    };
+
     state.save_state().await;
     res
 }
@@ -373,11 +395,11 @@ async fn update_prime(
 ) -> StatusCode {
     let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
-            *state.status.write().await = AppStatus::RUNNING;
+            state.set_status(AppStatus::RUNNING).await;
             motor.unprime().await;
             motor.prime_steps = req.prime_steps;
             motor.ensure_primed().await;
-            *state.status.write().await = AppStatus::IDLE;
+            state.set_status(AppStatus::IDLE).await;
             StatusCode::OK
         }
         None => StatusCode::BAD_REQUEST,
@@ -397,13 +419,22 @@ async fn unprime(
 ) -> StatusCode {
     match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
-            *state.status.write().await = AppStatus::RUNNING;
+            state.set_status(AppStatus::RUNNING).await;
             motor.unprime().await;
-            *state.status.write().await = AppStatus::IDLE;
+            state.set_status(AppStatus::IDLE).await;
             StatusCode::OK
         }
         None => StatusCode::BAD_REQUEST,
     }
+}
+
+async fn unprime_all(State(state): State<AppState>) -> StatusCode {
+    state.set_status(AppStatus::RUNNING).await;
+    for m in state.motors.lock().await.iter_mut() {
+        m.unprime().await;
+    }
+    state.set_status(AppStatus::IDLE).await;
+    StatusCode::OK
 }
 
 #[derive(Deserialize)]
@@ -431,10 +462,12 @@ async fn calibrate(
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "lowercase")]
 enum VolUnit {
     Ml,
     L,
     Gal,
+    #[serde(alias = "fl oz")] FlOz
 }
 
 impl VolUnit {
@@ -443,6 +476,7 @@ impl VolUnit {
             VolUnit::Ml => 1.0,
             VolUnit::L => 1000.0,
             VolUnit::Gal => 3785.41,
+            VolUnit::FlOz => 29.5735
         }
     }
 }
@@ -468,7 +502,7 @@ async fn dose_solution(
     let solution_ml = req.target_amount * req.target_unit.scale_to_ml();
     let solution_gal = solution_ml / VolUnit::Gal.scale_to_ml();
     info!("Dosing solution for {solution_gal} gallons of water ({solution_ml} mL)");
-    *state.status.write().await = AppStatus::RUNNING;
+    state.set_status(AppStatus::RUNNING).await;
     for nutrient in req.nutrients {
         if let Some(motor) = state.motors.lock().await.get_mut(nutrient.motor_idx) {
             let ml_needed = solution_gal * nutrient.ml_per_gal;
@@ -477,7 +511,7 @@ async fn dose_solution(
             motor.dispense_ml(ml_needed).await;
         }
     }
-    *state.status.write().await = AppStatus::IDLE;
+    state.set_status(AppStatus::IDLE).await;
     StatusCode::OK
 }
 
@@ -492,7 +526,7 @@ struct OtaReq {
 }
 
 async fn handle_ota(State(state): State<AppState>, Json(req): Json<OtaReq>) {
-    *state.status.write().await = AppStatus::OTA;
+    state.set_status(AppStatus::OTA).await;
     match do_ota(req.uri).await {
         Ok(_) => {
             info!("OTA download successful! rebooting to new image...");
@@ -500,7 +534,7 @@ async fn handle_ota(State(state): State<AppState>, Json(req): Json<OtaReq>) {
         }
         Err(e) => error!("OTA failed! - {e}"),
     };
-    *state.status.write().await = AppStatus::IDLE;
+    state.set_status(AppStatus::IDLE).await;
 }
 
 fn handle_ota_resp(mut resp: Response<&mut EspHttpConnection>) -> Result<(), EspError> {

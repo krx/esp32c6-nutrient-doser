@@ -20,7 +20,7 @@ serde_json = "1.0.145"
 tokio = { version = "1.48.0", features = ["rt", "net", "sync", "time"] }
 toml-cfg = "0.2.0"
 tower-http = { version = "0.6.6", features = ["cors"] }
-ws2812-esp32-rmt-driver = { version = "0.13.0", features = ["smart-leds-trait"] }
+ws2812-esp32-rmt-driver = { version = "0.13.1", features = ["smart-leds-trait"] }
 smart-leds = "0.4.0"
 stepgen = { git = "https://github.com/idubrov/stepgen", version = "0.1.3" }
 
