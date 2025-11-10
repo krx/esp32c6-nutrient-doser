@@ -11,7 +11,7 @@ const wakelock = reactive(useWakeLock());
 const dispensed = ref(10.0);
 const actual = ref(10.0);
 
-const stepper = templateRef('stepper');
+const stepper = useTemplateRef('stepper');
 const active_step = ref(0);
 const steps = ref<StepperItem[]>([
   {

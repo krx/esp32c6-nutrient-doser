@@ -1,0 +1,373 @@
+[
+  {
+    "name": "MaxiGro",
+    "unit": "g",
+    "color": "#91cc75",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.10
+      },
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.14
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.06
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.02
+      },
+      {
+        "name": "Sulfur",
+        "abbr": "S",
+        "pcnt": 0.03
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.0012
+      },
+      {
+        "name": "Manganese",
+        "abbr": "Mn",
+        "pcnt": 0.0005
+      }
+    ]
+  },
+  {
+    "name": "MaxiBloom",
+    "unit": "g",
+    "color": "#ea7ccc",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.15
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.14
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.035
+      },
+      {
+        "name": "Sulfur",
+        "abbr": "S",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.001
+      }
+    ]
+  },
+  {
+    "name": "CALiMAGic",
+    "unit": "mL",
+    "color": "#fac858",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.01
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.015
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.001
+      }
+    ]
+  },
+  {
+    "name": "FloraMicro",
+    "unit": "mL",
+    "color": "#ee6666",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.01
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Boron",
+        "abbr": "B",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Cobalt",
+        "abbr": "Co",
+        "pcnt": 0.000005
+      },
+      {
+        "name": "Copper",
+        "abbr": "Cu",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.001
+      },
+      {
+        "name": "Manganese",
+        "abbr": "Mn",
+        "pcnt": 0.0005
+      },
+      {
+        "name": "Molybdenum",
+        "abbr": "Mo",
+        "pcnt": 0.000008
+      },
+      {
+        "name": "Zinc",
+        "abbr": "Zn",
+        "pcnt": 0.00015
+      }
+    ]
+  },
+  {
+    "name": "FloraGro",
+    "unit": "mL",
+    "color": "#91cc75",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.02
+      },
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.01
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.06
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.005
+      }
+    ]
+  },
+  {
+    "name": "FloraBloom",
+    "unit": "mL",
+    "color": "#ea7ccc",
+    "nutrients": [
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.05
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.015
+      },
+      {
+        "name": "Sulfur",
+        "abbr": "S",
+        "pcnt": 0.01
+      }
+    ]
+  },
+  {
+    "name": "FloraNovaGrow",
+    "unit": "mL",
+    "color": "#91cc75",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.07
+      },
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.1
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.015
+      },
+      {
+        "name": "Boron",
+        "abbr": "B",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Chlorine",
+        "abbr": "Cl",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Cobalt",
+        "abbr": "Co",
+        "pcnt": 0.00002
+      },
+      {
+        "name": "Copper",
+        "abbr": "Cu",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.001
+      },
+      {
+        "name": "Manganese",
+        "abbr": "Mn",
+        "pcnt": 0.0003
+      },
+      {
+        "name": "Molybdenum",
+        "abbr": "Mo",
+        "pcnt": 0.00003
+      },
+      {
+        "name": "Zinc",
+        "abbr": "Zn",
+        "pcnt": 0.0002
+      }
+    ]
+  },
+  {
+    "name": "FloraNovaBloom",
+    "unit": "mL",
+    "color": "#ea7ccc",
+    "nutrients": [
+      {
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Phosphate",
+        "abbr": "P",
+        "pcnt": 0.08
+      },
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 0.07
+      },
+      {
+        "name": "Calcium",
+        "abbr": "Ca",
+        "pcnt": 0.04
+      },
+      {
+        "name": "Magnesium",
+        "abbr": "Mg",
+        "pcnt": 0.02
+      },
+      {
+        "name": "Boron",
+        "abbr": "B",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Chlorine",
+        "abbr": "Cl",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Cobalt",
+        "abbr": "Co",
+        "pcnt": 0.00002
+      },
+      {
+        "name": "Copper",
+        "abbr": "Cu",
+        "pcnt": 0.0001
+      },
+      {
+        "name": "Iron",
+        "abbr": "Fe",
+        "pcnt": 0.001
+      },
+      {
+        "name": "Manganese",
+        "abbr": "Mn",
+        "pcnt": 0.0003
+      },
+      {
+        "name": "Molybdenum",
+        "abbr": "Mo",
+        "pcnt": 0.00003
+      },
+      {
+        "name": "Zinc",
+        "abbr": "Zn",
+        "pcnt": 0.0001
+      }
+    ]
+  }
+]
