@@ -41,7 +41,7 @@ macro_rules! esp_err {
 }
 
 const FIRMWARE_DOWNLOAD_CHUNK_SIZE: usize = 1024 * 20;
-const FIRMWARE_MAX_SIZE: usize  = 0x1f0000; // Max size of each app partition
+const FIRMWARE_MAX_SIZE: usize  = 0x3f0000; // Max size of each app partition
 const FIRMWARE_MIN_SIZE: usize  = size_of::<FirmwareInfo>() + 1024;
 
 const BIND_IP: &str = "0.0.0.0";
@@ -525,16 +525,20 @@ struct OtaReq {
     uri: Uri,
 }
 
-async fn handle_ota(State(state): State<AppState>, Json(req): Json<OtaReq>) {
+async fn handle_ota(State(state): State<AppState>, Json(req): Json<OtaReq>) -> StatusCode {
     state.set_status(AppStatus::OTA).await;
     match do_ota(req.uri).await {
         Ok(_) => {
             info!("OTA download successful! rebooting to new image...");
             restart();
         }
-        Err(e) => error!("OTA failed! - {e}"),
+        Err(e) => {
+            error!("OTA failed! - {e} {e:?}");
+
+            state.set_status(AppStatus::IDLE).await;
+            return StatusCode::INTERNAL_SERVER_ERROR;
+        }
     };
-    state.set_status(AppStatus::IDLE).await;
 }
 
 fn handle_ota_resp(mut resp: Response<&mut EspHttpConnection>) -> Result<(), EspError> {
@@ -556,12 +560,15 @@ fn handle_ota_resp(mut resp: Response<&mut EspHttpConnection>) -> Result<(), Esp
 
     // Start OTA
     let mut ota = EspOta::new()?;
-    info!(
-        "CURRENT SLOTS (BOOT, RUN, UPD): ({}, {}, {})",
-        ota.get_boot_slot()?.label,
-        ota.get_running_slot()?.label,
-        ota.get_update_slot()?.label
-    );
+
+    // For some reason the call to EspOta::get_firmware_info inside these raises ESP_ERR_INVALID_SIZE now???
+    // just logging these, so commenting out for now
+    // info!(
+    //     "CURRENT SLOTS (BOOT, RUN, UPD): ({}, {}, {})",
+    //     ota.get_boot_slot()?.label,
+    //     ota.get_running_slot()?.label,
+    //     ota.get_update_slot()?.label
+    // );
 
     let mut upd = ota.initiate_update()?;
     let mut buf = vec![0; FIRMWARE_DOWNLOAD_CHUNK_SIZE];
