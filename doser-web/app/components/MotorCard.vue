@@ -43,7 +43,7 @@ async function set_priming_steps() {
 </script>
 
 <template>
-  <UCard variant="outline">
+  <UCard variant="outline" class="w-9/10">
     <UContainer class="flex flex-col items-center justify-center">
       <h2 class="font-bold text-lg">{{ motor.name }}</h2>
     </UContainer>
