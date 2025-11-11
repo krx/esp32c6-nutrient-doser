@@ -357,7 +357,6 @@ async fn debug_step(
         None => StatusCode::BAD_REQUEST,
     };
 
-    state.save_state().await;
     res
 }
 
@@ -506,9 +505,10 @@ async fn dose_solution(
     for nutrient in req.nutrients {
         if let Some(motor) = state.motors.lock().await.get_mut(nutrient.motor_idx) {
             let ml_needed = solution_gal * nutrient.ml_per_gal;
-
-            info!("Dispensing {ml_needed}mL of {}", nutrient.name);
-            motor.dispense_ml(ml_needed).await;
+            if ml_needed > 0.0 {
+                info!("Dispensing {ml_needed}mL of {}", nutrient.name);
+                motor.dispense_ml(ml_needed).await;
+            }
         }
     }
     state.set_status(AppStatus::IDLE).await;
