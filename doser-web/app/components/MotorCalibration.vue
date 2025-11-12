@@ -93,8 +93,16 @@ async function confirm_step() {
       <template #calibrate>
         <div class="flex flex-col justify-center items-center gap-4">
           Enter how much liquid was dispensed
-          <h1 class="text-4xl">{{ actual }} mL</h1>
-          <USlider v-model="actual" :min="0.1" :max="20.0" :step="0.1" />
+          <UFieldGroup size="xl">
+            <UInputNumber
+              v-model="actual"
+              :min="0.0"
+              :step="0.1"
+              :step-snapping="false"
+              :ui="{ base: ['text-4xl'] }"
+            />
+            <UBadge label="mL" variant="subtle" color="neutral" />
+          </UFieldGroup>
           <USeparator class="h-4" />
           <div class="flex flex-row w-full">
             <UButton label="Back" icon="i-lucide-arrow-left" @click="stepper?.prev()" />

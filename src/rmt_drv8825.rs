@@ -54,7 +54,7 @@ impl DRV8825 {
 
         let mut sg = Stepgen::new(self.clock.0);
         sg.set_acceleration(400 << 8).unwrap();
-        sg.set_target_speed(600 << 8).unwrap();
+        sg.set_target_speed(500 << 8).unwrap();
         sg.set_target_step(steps).unwrap();
 
         // The generated delays are ticks between the rising edges of two pulses,

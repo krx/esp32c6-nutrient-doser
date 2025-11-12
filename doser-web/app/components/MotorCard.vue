@@ -75,23 +75,27 @@ async function set_priming_steps() {
   <UModal v-model:open="priming_modal" title="Priming Setup">
     <template #body>
       <div class="flex flex-col items-center text-center w-full gap-4">
-        <UFieldGroup>
+        <UFieldGroup size="xl">
           <UInputNumber v-model="motor.prime_steps" :min="0" :step="1" />
           <UBadge label="steps" variant="subtle" color="neutral" />
         </UFieldGroup>
-        <div class="flex flex-row items-center text-center gap-2">
-          <UButton label="-1000" @click="add_priming_steps(-1000)" />
-          <UButton label="-100" @click="add_priming_steps(-100)" />
-          <UButton label="-10" @click="add_priming_steps(-10)" />
-          <UButton label="+10" @click="add_priming_steps(10)" />
-          <UButton label="+100" @click="add_priming_steps(100)" />
-          <UButton label="+1000" @click="add_priming_steps(1000)" />
-        </div>
+        <UFieldGroup class="flex flex-row items-center text-center justify-center">
+          <UButton
+            v-for="i in [-1000, -100, -10, 10, 100, 1000]"
+            :key="i"
+            :label="`${i}`"
+            size="xl"
+            variant="subtle"
+            class="text-2xl"
+            @click="add_priming_steps(i)"
+          />
+        </UFieldGroup>
         <UButton
           label="Set"
           leading-icon="i-tabler-droplet-plus"
           :block="true"
           loading-auto
+          size="xl"
           @click="set_priming_steps"
         />
       </div>
@@ -100,8 +104,14 @@ async function set_priming_steps() {
   <UModal v-model:open="dispense_modal" :dismissible="false" :title="`Dispense ${motor.name}`">
     <template #body>
       <div class="flex flex-col items-center text-center w-full gap-4">
-        <UFieldGroup>
-          <UInputNumber v-model="dispense_amt" :min="0.0" :step="1.0" :step-snapping="false" />
+        <UFieldGroup size="xl">
+          <UInputNumber
+            v-model="dispense_amt"
+            :min="0.0"
+            :step="1.0"
+            :step-snapping="false"
+            :ui="{ base: ['text-4xl'] }"
+          />
           <UBadge label="mL" variant="subtle" color="neutral" />
         </UFieldGroup>
         <UButton
@@ -109,6 +119,7 @@ async function set_priming_steps() {
           leading-icon="i-lucide-droplets"
           :block="true"
           loading-auto
+          size="xl"
           @click="dapi.dispense(doser.url, { reqs: [{ motor_idx: motor.idx, ml: dispense_amt }] })"
         />
       </div>

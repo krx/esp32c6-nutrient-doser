@@ -12,6 +12,9 @@ GET http://nutrient-doser-v2.lan/full-status HTTP/1.1
 GET http://nutrient-doser-v2.lan/status HTTP/1.1
 
 ###
+GET http://nutrient-doser-v2.lan/reboot HTTP/1.1
+
+###
 POST http://nutrient-doser-v2.lan/dispense HTTP/1.1
 content-type: application/json
 
@@ -46,7 +49,7 @@ POST http://nutrient-doser-v2.lan/unprime HTTP/1.1
 content-type: application/json
 
 {
-    "motor_idx": 2
+    "motor_idx": 1
 }
 
 ###
@@ -68,7 +71,7 @@ content-type: application/json
 
 {
     "motor_idx": 2,
-    "steps": 200
+    "steps": -1600
 }
 
 ###
