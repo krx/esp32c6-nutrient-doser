@@ -100,6 +100,9 @@ impl StepperMotor {
             drv.step_by((ml / self.ml_per_step).floor() as i32)
                 .await
                 .unwrap();
+
+            // Back off slightly to prevent extra liquid dripping out from pressure
+            drv.step_by(-50).await.unwrap();
         }
     }
 }
