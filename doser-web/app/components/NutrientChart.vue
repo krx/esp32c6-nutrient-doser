@@ -8,6 +8,8 @@ import _ from 'lodash';
 import VChart, { THEME_KEY } from 'vue-echarts';
 import defaultdict from 'defaultdict-proxy';
 import type { NutrientTable } from '~/types/nutrients';
+import type { EChartsOption } from 'echarts';
+import type { PieDataItemOption } from 'echarts/types/src/chart/pie/PieSeries.js';
 
 use([CanvasRenderer, PieChart, TitleComponent, TooltipComponent, LegendComponent]);
 
@@ -23,21 +25,21 @@ const stage = defineModel<GrowthStage>('stage', { required: true });
 function compute_nutrients(value_label = false) {
   const target_gal = to_gal(target_amount.value, target_unit.value);
 
-  const res: Array<object> = [];
+  const res: Array<PieDataItemOption> = [];
   chart.value.nutrients.forEach((n) => {
     const amt = (stage.value[n.name] || 0) * target_gal;
     if (amt > 0) {
       res.push({
         name: n.name,
-        value: _.round(amt, 3),
+        value: amt,
         itemStyle: {
           color: n.color,
         },
         label: {
-          formatter: value_label ? `{c} ${n.unit}` : '{b}',
+          formatter: (args) => value_label ? `${_.round(args.value, 3)} ${n.unit}` : `${args.name}`,
         },
         tooltip: {
-          valueFormatter: (val: number) => `${val} ${n.unit}`,
+          valueFormatter: (val: number) => `${_.round(val, 3)} ${n.unit}`,
         },
       });
     }
@@ -54,7 +56,7 @@ function compute_micros() {
     all_nutrients
       .find((v) => v.name === n.name)
       ?.nutrients.forEach((micro) => {
-        micros[micro.abbr] += n.value * micro.pcnt;
+        micros[micro.abbr] += n.value * micro.pcnt / 100.0;
         names[micro.abbr] = micro.name;
       });
   });
@@ -73,7 +75,7 @@ function compute_micros() {
   });
 }
 
-const option = ref({
+const option = ref<EChartsOption>({
   backgroundColor: 'transparent',
   title: {
     text: 'Amounts to Mix',
@@ -103,7 +105,7 @@ const option = ref({
   ],
 });
 
-const option_micros = ref({
+const option_micros = ref<EChartsOption>({
   backgroundColor: 'transparent',
   title: {
     text: 'Nutrient Analysis',
@@ -122,7 +124,7 @@ const option_micros = ref({
   series: [
     {
       type: 'pie',
-      radius: '75%',
+      radius: '70%',
       data: computed(() => compute_micros()),
     },
   ],
@@ -132,12 +134,12 @@ const option_micros = ref({
 <template>
   <UCard variant="subtle">
     <UContainer class="flex flex-col gap-2 items-center justify-center h-128">
-      <v-chart :option="option" />
+      <VChart :option="option" />
     </UContainer>
   </UCard>
   <UCard variant="subtle">
     <UContainer class="flex flex-col gap-2 items-center justify-center h-128">
-      <v-chart :option="option_micros" />
+      <VChart :option="option_micros" />
     </UContainer>
   </UCard>
 </template>

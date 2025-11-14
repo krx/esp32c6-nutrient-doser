@@ -7,42 +7,42 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.10
+        "pcnt": 10.0
       },
       {
-        "name": "Phosphate",
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.14
+        "pcnt": 14.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.06
+        "pcnt": 6.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.02
+        "pcnt": 2.0
       },
       {
         "name": "Sulfur",
         "abbr": "S",
-        "pcnt": 0.03
+        "pcnt": 3.0
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.0012
+        "pcnt": 0.12
       },
       {
         "name": "Manganese",
         "abbr": "Mn",
-        "pcnt": 0.0005
+        "pcnt": 0.05
       }
     ]
   },
@@ -54,37 +54,37 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
-        "name": "Phosphate",
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.15
+        "pcnt": 15.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.14
+        "pcnt": 14.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.035
+        "pcnt": 3.5
       },
       {
         "name": "Sulfur",
         "abbr": "S",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.001
+        "pcnt": 0.1
       }
     ]
   },
@@ -96,22 +96,22 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.01
+        "pcnt": 1.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.015
+        "pcnt": 1.5
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.001
+        "pcnt": 0.1
       }
     ]
   },
@@ -123,52 +123,57 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.05
+        "pcnt": 5.0
+      },
+      {
+        "name": "Phosphorus",
+        "abbr": "P",
+        "pcnt": 0.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.01
+        "pcnt": 1.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
         "name": "Boron",
         "abbr": "B",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Cobalt",
         "abbr": "Co",
-        "pcnt": 0.000005
+        "pcnt": 0.0005
       },
       {
         "name": "Copper",
         "abbr": "Cu",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.001
+        "pcnt": 0.1
       },
       {
         "name": "Manganese",
         "abbr": "Mn",
-        "pcnt": 0.0005
+        "pcnt": 0.05
       },
       {
         "name": "Molybdenum",
         "abbr": "Mo",
-        "pcnt": 0.000008
+        "pcnt": 0.0008
       },
       {
         "name": "Zinc",
         "abbr": "Zn",
-        "pcnt": 0.00015
+        "pcnt": 0.015
       }
     ]
   },
@@ -180,22 +185,22 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.02
+        "pcnt": 2.0
       },
       {
-        "name": "Phosphate",
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.01
+        "pcnt": 1.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.06
+        "pcnt": 6.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.005
+        "pcnt": 0.5
       }
     ]
   },
@@ -205,24 +210,29 @@
     "color": "#ea7ccc",
     "nutrients": [
       {
-        "name": "Phosphate",
+        "name": "Nitrogen",
+        "abbr": "N",
+        "pcnt": 0.0
+      },
+      {
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.05
+        "pcnt": 5.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.015
+        "pcnt": 1.5
       },
       {
         "name": "Sulfur",
         "abbr": "S",
-        "pcnt": 0.01
+        "pcnt": 1.0
       }
     ]
   },
@@ -234,67 +244,67 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.07
+        "pcnt": 7.0
       },
       {
-        "name": "Phosphate",
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.1
+        "pcnt": 10.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.015
+        "pcnt": 1.5
       },
       {
         "name": "Boron",
         "abbr": "B",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Chlorine",
         "abbr": "Cl",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Cobalt",
         "abbr": "Co",
-        "pcnt": 0.00002
+        "pcnt": 0.002
       },
       {
         "name": "Copper",
         "abbr": "Cu",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.001
+        "pcnt": 0.1
       },
       {
         "name": "Manganese",
         "abbr": "Mn",
-        "pcnt": 0.0003
+        "pcnt": 0.03
       },
       {
         "name": "Molybdenum",
         "abbr": "Mo",
-        "pcnt": 0.00003
+        "pcnt": 0.003
       },
       {
         "name": "Zinc",
         "abbr": "Zn",
-        "pcnt": 0.0002
+        "pcnt": 0.02
       }
     ]
   },
@@ -306,67 +316,79 @@
       {
         "name": "Nitrogen",
         "abbr": "N",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
-        "name": "Phosphate",
+        "name": "Phosphorus",
         "abbr": "P",
-        "pcnt": 0.08
+        "pcnt": 8.0
       },
       {
         "name": "Potassium",
         "abbr": "K",
-        "pcnt": 0.07
+        "pcnt": 7.0
       },
       {
         "name": "Calcium",
         "abbr": "Ca",
-        "pcnt": 0.04
+        "pcnt": 4.0
       },
       {
         "name": "Magnesium",
         "abbr": "Mg",
-        "pcnt": 0.02
+        "pcnt": 2.0
       },
       {
         "name": "Boron",
         "abbr": "B",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Chlorine",
         "abbr": "Cl",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Cobalt",
         "abbr": "Co",
-        "pcnt": 0.00002
+        "pcnt": 0.002
       },
       {
         "name": "Copper",
         "abbr": "Cu",
-        "pcnt": 0.0001
+        "pcnt": 0.01
       },
       {
         "name": "Iron",
         "abbr": "Fe",
-        "pcnt": 0.001
+        "pcnt": 0.1
       },
       {
         "name": "Manganese",
         "abbr": "Mn",
-        "pcnt": 0.0003
+        "pcnt": 0.03
       },
       {
         "name": "Molybdenum",
         "abbr": "Mo",
-        "pcnt": 0.00003
+        "pcnt": 0.003
       },
       {
         "name": "Zinc",
         "abbr": "Zn",
-        "pcnt": 0.0001
+        "pcnt": 0.01
+      }
+    ]
+  },
+  {
+    "name": "ArmorSi",
+    "unit": "mL",
+    "color": "#587bf3",
+    "nutrients": [
+      {
+        "name": "Potassium",
+        "abbr": "K",
+        "pcnt": 4.0
       }
     ]
   }
