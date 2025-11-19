@@ -134,12 +134,12 @@ const option_micros = ref<EChartsOption>({
 <template>
   <UCard variant="subtle">
     <UContainer class="flex flex-col gap-2 items-center justify-center h-128">
-      <VChart :option="option" />
+      <VChart :option="option" :autoresize="true" />
     </UContainer>
   </UCard>
   <UCard variant="subtle">
     <UContainer class="flex flex-col gap-2 items-center justify-center h-128">
-      <VChart :option="option_micros" />
+      <VChart :option="option_micros" :autoresize="true" />
     </UContainer>
   </UCard>
 </template>

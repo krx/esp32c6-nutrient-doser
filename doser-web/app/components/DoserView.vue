@@ -27,15 +27,16 @@ const units = ref<VolUnit[]>(['mL', 'L', 'gal', 'fl oz']);
 async function dispense_solution() {
   const table = chart.value!.charts[schedule.value]![stage.value]!;
   const req: DoseSolutionReq = {
-    nutrients: Object.entries(table).map(([nutrient, amount]) => {
-      return {
+    nutrients: Object.entries(table).flatMap(([nutrient, amount]) => {
+      const idx = doser.value.motors.find((m) => m.name == nutrient)?.idx;
+      return idx === undefined ? [] : {
         name: nutrient,
         ml_per_gal: amount,
-        motor_idx: doser.value.motors.find((m) => m.name == nutrient)!.idx,
+        motor_idx: idx,
       };
     }),
     target_amount: target_amount.value,
-    target_unit: target_unit.value,
+    target_unit: target_unit.value.toLowerCase(),
   };
   await dapi.dose_solution(doser.value.url, req);
 }
@@ -79,30 +80,24 @@ async function dispense_solution() {
         </UContainer>
       </template>
       <UContainer class="flex flex-col gap-2 items-center justify-center">
-        <UTabs
+        <TabSelect
           v-model="schedule"
-          class="w-full"
-          size="xl"
           :items="
             Object.keys(chart!.charts).map((k) => {
               return { label: _.capitalize(k), value: k };
             })
           "
-          :content="false"
         />
-        <UTabs
+        <TabSelect
           v-model="stage"
-          class="w-full"
-          size="xl"
           :items="
             Object.keys(chart!.charts[schedule]!).map((k) => {
               return { label: _.capitalize(k), value: k };
             })
           "
           :ui="{
-            label: 'text-xs sm:text-base text-wrap',
+            label: 'text-clip text-pretty',
           }"
-          :content="false"
         />
 
         <UFieldGroup class="w-full">
