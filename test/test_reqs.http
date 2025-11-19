@@ -36,6 +36,16 @@ content-type: application/json
 }
 
 ###
+POST http://nutrient-doser-v2.lan/dose HTTP/1.1
+content-type: application/json
+
+{
+    "nutrients": [],
+    "target_amount": 1.0,
+    "target_unit": "L"
+}
+
+###
 POST http://nutrient-doser-v2.lan/update-prime HTTP/1.1
 content-type: application/json
 
@@ -60,9 +70,9 @@ POST http://nutrient-doser-v2.lan/calibrate HTTP/1.1
 content-type: application/json
 
 {
-    "motor_idx": 0,
-    "expected": 15.0,
-    "actual": 15.04
+    "motor_idx": 2,
+    "expected": 10.0,
+    "actual": 11.781
 }
 
 ###
@@ -71,7 +81,7 @@ content-type: application/json
 
 {
     "motor_idx": 2,
-    "steps": -1600
+    "steps": -50
 }
 
 ###

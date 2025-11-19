@@ -464,12 +464,18 @@ async fn calibrate(
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "lowercase")]
 enum VolUnit {
+    #[serde(alias = "ml", alias = "mL")]
     Ml,
+
+    #[serde(alias = "l")]
     L,
+
+    #[serde(alias = "gal")]
     Gal,
-    #[serde(alias = "fl oz")] FlOz
+
+    #[serde(alias = "fl oz", alias="Fl Oz", alias="floz")]
+    FlOz
 }
 
 impl VolUnit {

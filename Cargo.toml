@@ -2,7 +2,7 @@
 name = "nutrient-doser"
 edition = "2021"
 rust-version = "1.88"
-version = "0.2.1"
+version = "0.2.3"
 authors = ["Kareem ElFaramawi <kareem02@gmail.com>"]
 resolver = "2"
 
