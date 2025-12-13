@@ -10,6 +10,13 @@ const all_charts = defineModel<{ [key: string]: Chart }>('all-charts', { require
 const _sel = ref('');
 const add_modal_opened = ref(false);
 
+onMounted(() => {
+  if (all_dosers.value.length === 1) {
+    selected.value = all_dosers.value[0];
+    _sel.value = all_dosers.value[0]!.url;
+  }
+});
+
 function remove_doser() {
   api.remove_doser(_sel.value);
   _.remove(all_dosers.value, (d) => d.url === _sel.value);

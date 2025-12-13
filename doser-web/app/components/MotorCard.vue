@@ -57,10 +57,19 @@ async function set_priming_steps() {
         label="Unprime"
         icon="i-lucide-droplet-off"
         color="neutral"
-        variant="soft"
+        variant="subtle"
         class="w-full"
         loading-auto
         @click="dapi.unprime(doser.url, { motor_idx: motor.idx })"
+      />
+      <UButton
+        label="Prime"
+        icon="i-lucide-droplet"
+        color="neutral"
+        variant="subtle"
+        class="w-full"
+        loading-auto
+        @click="dapi.dispense(doser.url, {reqs:[{ motor_idx: motor.idx, ml: 0 }]})"
       />
       <UDropdownMenu arrow :items="settings">
         <UButton icon="i-lucide-settings" color="neutral" variant="subtle" />

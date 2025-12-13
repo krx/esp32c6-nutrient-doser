@@ -27,14 +27,14 @@ const units = ref<VolUnit[]>(['mL', 'L', 'gal', 'fl oz']);
 async function dispense_solution() {
   const table = chart.value!.charts[schedule.value]![stage.value]!;
   const req: DoseSolutionReq = {
-    nutrients: Object.entries(table).flatMap(([nutrient, amount]) => {
+    nutrients: _.sortBy(Object.entries(table).flatMap(([nutrient, amount]) => {
       const idx = doser.value.motors.find((m) => m.name == nutrient)?.idx;
       return idx === undefined ? [] : {
         name: nutrient,
         ml_per_gal: amount,
         motor_idx: idx,
       };
-    }),
+    }), n => n.motor_idx),
     target_amount: target_amount.value,
     target_unit: target_unit.value.toLowerCase(),
   };
