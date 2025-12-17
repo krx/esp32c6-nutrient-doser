@@ -81,7 +81,7 @@ impl StepperMotor {
         if !self.is_primed() {
             if let Some(drv) = &mut self.driver {
                 info!("Priming motor {}", self.id);
-                drv.step_by(self.prime_steps as i32).await.unwrap()
+                drv.step_by(self.prime_steps as f64).await.unwrap()
             }
         }
     }
@@ -89,7 +89,7 @@ impl StepperMotor {
     async fn unprime(&mut self) {
         info!("Unpriming motor {}", self.id);
         if let Some(drv) = &mut self.driver {
-            drv.step_by(-2 * self.prime_steps as i32).await.unwrap();
+            drv.step_by(-2.0 * self.prime_steps as f64).await.unwrap();
             drv.reset_position();
         }
     }
@@ -97,12 +97,12 @@ impl StepperMotor {
     async fn dispense_ml(&mut self, ml: f64) {
         self.ensure_primed().await;
         if let Some(drv) = &mut self.driver {
-            drv.step_by((ml / self.ml_per_step).floor() as i32)
+            drv.step_by((ml / self.ml_per_step).floor() as f64)
                 .await
                 .unwrap();
 
             // Back off slightly to prevent extra liquid dripping out from pressure
-            drv.step_by(-50).await.unwrap();
+            drv.step_by(-50.0).await.unwrap();
         }
     }
 }
@@ -129,7 +129,6 @@ impl AppState {
         for drv in drivers {
             self.add_config_entry(drv).await;
         }
-        self.save_state().await;
     }
 
     async fn add_config_entry(&self, drv: DRV8825) {
@@ -218,7 +217,6 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
     };
     state.save_state().await;
 
-    // let state = Arc::new(Mutex::new(_state));
     info!("Config loaded, starting app...");
     let app = Router::new()
         .route("/", get(root))
@@ -226,6 +224,7 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
         .route("/status", get(get_status))
         .route("/debug/step", post(debug_step))
         .route("/debug/calibrate", post(debug_calibrate))
+        .route("/debug/clear-config", post(debug_clear_config))
         .route("/dispense", post(dispense))
         .route("/update-prime", post(update_prime))
         .route("/unprime", post(unprime))
@@ -341,7 +340,7 @@ async fn dispense(
 #[derive(Deserialize)]
 struct DebugStepReq {
     motor_idx: usize,
-    steps: i32,
+    steps: f64,
 }
 
 async fn debug_step(
@@ -383,6 +382,13 @@ async fn debug_calibrate(
 
     state.save_state().await;
     res
+}
+
+
+async fn debug_clear_config(State(state): State<AppState>) {
+    state.motors.lock().await.clear();
+    state.save_state().await;
+    restart();
 }
 
 #[derive(Deserialize)]

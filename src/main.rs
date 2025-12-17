@@ -22,7 +22,7 @@ use log::{info, warn};
 use smart_leds::{brightness, colors, gamma};
 use ws2812_esp32_rmt_driver::Ws2812Esp32Rmt;
 
-use crate::rmt_drv8825::DRV8825;
+use crate::rmt_drv8825::{MicroSteps, DRV8825};
 
 #[toml_cfg::toml_config]
 pub struct Config {
@@ -62,27 +62,44 @@ fn main() -> anyhow::Result<()> {
     // 2. Only the EN pin of the motor being run should be enabled, all others disabled
     let tx_conf = TxRmtConfig::default()
         .idle(Some(PinState::Low))
-        .clock_divider(160); // 80MHz -> 500kHz
+        .clock_divider(40); // 80MHz -> 2MHz
+
     let tx = Arc::new(Mutex::new(TxRmtDriver::new(
         peripherals.rmt.channel1,
-        peripherals.pins.gpio5,
+        peripherals.pins.gpio15,
         &tx_conf,
     )?));
+
     let drivers = vec![
         DRV8825::new(
-            AnyOutputPin::from(peripherals.pins.gpio6),
             AnyOutputPin::from(peripherals.pins.gpio4),
+            AnyOutputPin::from(peripherals.pins.gpio5),
             tx.clone(),
+            MicroSteps::M32,
         )?,
         DRV8825::new(
-            AnyOutputPin::from(peripherals.pins.gpio9),
-            AnyOutputPin::from(peripherals.pins.gpio18),
+            AnyOutputPin::from(peripherals.pins.gpio6),
+            AnyOutputPin::from(peripherals.pins.gpio7),
             tx.clone(),
+            MicroSteps::M32,
         )?,
         DRV8825::new(
-            AnyOutputPin::from(peripherals.pins.gpio19),
+            AnyOutputPin::from(peripherals.pins.gpio0),
+            AnyOutputPin::from(peripherals.pins.gpio1),
+            tx.clone(),
+            MicroSteps::M32,
+        )?,
+        DRV8825::new(
+            AnyOutputPin::from(peripherals.pins.gpio23),
+            AnyOutputPin::from(peripherals.pins.gpio22),
+            tx.clone(),
+            MicroSteps::M32,
+        )?,
+        DRV8825::new(
+            AnyOutputPin::from(peripherals.pins.gpio21),
             AnyOutputPin::from(peripherals.pins.gpio20),
             tx.clone(),
+            MicroSteps::M32,
         )?,
     ];
 
