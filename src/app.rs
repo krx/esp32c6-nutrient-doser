@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use embedded_svc::http::{
     client::{Client, Response},
@@ -27,7 +27,7 @@ use mime::APPLICATION_OCTET_STREAM;
 use serde::{Deserialize, Serialize};
 use tokio::{
     net::TcpListener,
-    sync::{oneshot, Mutex, RwLock},
+    sync::{Mutex, RwLock, mpsc, oneshot}, time::interval,
 };
 use tower_http::cors::{self, CorsLayer};
 
@@ -102,7 +102,7 @@ impl StepperMotor {
                 .unwrap();
 
             // Back off slightly to prevent extra liquid dripping out from pressure
-            drv.step_by(-50.0).await.unwrap();
+            drv.step_by(-200.0).await.unwrap();
         }
     }
 }
@@ -120,7 +120,8 @@ enum AppStatus {
 struct AppState {
     motors: Arc<Mutex<Vec<StepperMotor>>>,
     nvs: Arc<RwLock<EspCustomNvs>>,
-    status: Arc<RwLock<AppStatus>>
+    status: Arc<RwLock<AppStatus>>,
+    timer_reset_tx: mpsc::Sender<()>,
 }
 
 impl AppState {
@@ -159,10 +160,16 @@ impl AppState {
     async fn set_status(&self, status: AppStatus) {
         *self.status.write().await = status;
     }
+
+    async fn reset_timer(&self) {
+        self.timer_reset_tx.send(()).await.unwrap();
+    }
 }
 
 pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
     info!("Starting app...");
+
+    let (timer_reset_tx, mut timer_reset_rx) = mpsc::channel::<()>(1);
 
     let state = AppState {
         motors: Arc::new(Mutex::new(Vec::new())),
@@ -172,6 +179,7 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
             true,
         )?)),
         status: Arc::new(RwLock::new(AppStatus::IDLE)),
+        timer_reset_tx,
     };
 
     // Load motor config if it exists, or create it
@@ -216,6 +224,24 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
         _ => state.create_config(drivers).await,
     };
     state.save_state().await;
+
+    // Start timer to periodically unprime all motors
+    let _state = state.clone();
+    tokio::spawn(async move {
+        let mut timer = interval(Duration::from_mins(30));
+        timer.reset();
+        loop {
+        tokio::select! {
+            _ = timer_reset_rx.recv() => {
+                info!("Resetting unprime timer");
+                timer.reset();
+            }
+            _ = timer.tick() => {
+                info!("Auto-unpriming all motors due to inactivity");
+                unprime_all(State(_state.clone())).await;
+            }
+        };
+    }});
 
     info!("Config loaded, starting app...");
     let app = Router::new()
@@ -323,10 +349,12 @@ async fn dispense(
     Json(req): Json<DispenseReq>
 ) -> StatusCode {
     let mut res = StatusCode::OK;
+    let mut motors = state.motors.lock().await;
     for r in req.reqs.iter() {
-        match state.motors.lock().await.get_mut(r.motor_idx) {
+        match motors.get_mut(r.motor_idx) {
             Some(motor) => {
                 info!("Dispensing {}ml of liquid #{}", r.ml, r.motor_idx);
+                state.reset_timer().await;
                 state.set_status(AppStatus::RUNNING).await;
                 motor.dispense_ml(r.ml).await;
                 state.set_status(AppStatus::IDLE).await;
@@ -350,6 +378,7 @@ async fn debug_step(
     let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
             if let Some(drv) = &mut motor.driver {
+                state.reset_timer().await;
                 state.set_status(AppStatus::RUNNING).await;
                 drv.step_by(req.steps).await.unwrap();
                 state.set_status(AppStatus::IDLE).await;
@@ -403,6 +432,7 @@ async fn update_prime(
 ) -> StatusCode {
     let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
+            state.reset_timer().await;
             state.set_status(AppStatus::RUNNING).await;
             motor.unprime().await;
             motor.prime_steps = req.prime_steps;
@@ -427,6 +457,7 @@ async fn unprime(
 ) -> StatusCode {
     match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
+            state.reset_timer().await;
             state.set_status(AppStatus::RUNNING).await;
             motor.unprime().await;
             state.set_status(AppStatus::IDLE).await;
@@ -437,6 +468,7 @@ async fn unprime(
 }
 
 async fn unprime_all(State(state): State<AppState>) -> StatusCode {
+    state.reset_timer().await;
     state.set_status(AppStatus::RUNNING).await;
     for m in state.motors.lock().await.iter_mut() {
         m.unprime().await;
@@ -516,9 +548,11 @@ async fn dose_solution(
     let solution_ml = req.target_amount * req.target_unit.scale_to_ml();
     let solution_gal = solution_ml / VolUnit::Gal.scale_to_ml();
     info!("Dosing solution for {solution_gal} gallons of water ({solution_ml} mL)");
+    state.reset_timer().await;
     state.set_status(AppStatus::RUNNING).await;
+    let mut motors = state.motors.lock().await;
     for nutrient in req.nutrients {
-        if let Some(motor) = state.motors.lock().await.get_mut(nutrient.motor_idx) {
+        if let Some(motor) = motors.get_mut(nutrient.motor_idx) {
             let ml_needed = solution_gal * nutrient.ml_per_gal;
             if ml_needed > 0.0 {
                 info!("Dispensing {ml_needed}mL of {}", nutrient.name);

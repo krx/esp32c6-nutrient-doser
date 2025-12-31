@@ -2,9 +2,13 @@
 name = "nutrient-doser"
 edition = "2021"
 rust-version = "1.88"
-version = "0.3.0"
+version = "0.3.4"
 authors = ["Kareem ElFaramawi <kareem02@gmail.com>"]
 resolver = "2"
+
+[package.metadata.scripts]
+build = "cargo bump && cargo build --release"
+build-ota = "cargo bump && cargo espflash save-image --release --chip esp32c6 ota.bin"
 
 [dependencies]
 anyhow = "1.0.100"
