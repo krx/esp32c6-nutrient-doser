@@ -27,11 +27,15 @@ use mime::APPLICATION_OCTET_STREAM;
 use serde::{Deserialize, Serialize};
 use tokio::{
     net::TcpListener,
-    sync::{Mutex, RwLock, mpsc, oneshot}, time::interval,
+    sync::{mpsc, oneshot, Mutex, RwLock},
+    time::interval,
 };
 use tower_http::cors::{self, CorsLayer};
 
-use crate::rmt_drv8825::DRV8825;
+use crate::{
+    online_linreg::OnlineLinearRegression,
+    rmt_drv8825::{DRV8825, MAX_RPM},
+};
 
 #[macro_export]
 macro_rules! esp_err {
@@ -41,8 +45,8 @@ macro_rules! esp_err {
 }
 
 const FIRMWARE_DOWNLOAD_CHUNK_SIZE: usize = 1024 * 20;
-const FIRMWARE_MAX_SIZE: usize  = 0x3f0000; // Max size of each app partition
-const FIRMWARE_MIN_SIZE: usize  = size_of::<FirmwareInfo>() + 1024;
+const FIRMWARE_MAX_SIZE: usize = 0x3f0000; // Max size of each app partition
+const FIRMWARE_MIN_SIZE: usize = size_of::<FirmwareInfo>() + 1024;
 
 const BIND_IP: &str = "0.0.0.0";
 const PORT: u16 = 80;
@@ -53,9 +57,12 @@ const NVS_TAG_MOTORS: &str = "motors";
 #[derive(Serialize, Deserialize)]
 struct StepperMotor {
     id: u32, // using the EN pin # to identify motors
-    #[serde(skip)] driver: Option<DRV8825>,
-    ml_per_step: f64, // Estimation of the amount of liquid dispensed per full step
-    prime_steps: u32, // Number of steps needed to pull liquid through all the tubing up to the nozzle
+
+    #[serde(skip)]
+    driver: Option<DRV8825>,
+
+    // Estimates slope (steps/mL) and intercept (# steps before any liquid is dispensed)
+    model: OnlineLinearRegression,
 }
 
 impl Default for StepperMotor {
@@ -63,46 +70,48 @@ impl Default for StepperMotor {
         Self {
             id: Default::default(),
             driver: None,
-            ml_per_step: 0.0032,  // From testing, this should be pretty close to start with
-            prime_steps: 0,
+            model: OnlineLinearRegression::new(),
         }
     }
 }
 
 impl StepperMotor {
-    fn is_primed(&self) -> bool {
-        match &self.driver {
-            Some(drv) => drv.get_position() > 0,
-            None => false,
-        }
-    }
-
-    async fn ensure_primed(&mut self) {
-        if !self.is_primed() {
-            if let Some(drv) = &mut self.driver {
-                info!("Priming motor {}", self.id);
-                drv.step_by(self.prime_steps as f64).await.unwrap()
-            }
-        }
-    }
-
     async fn unprime(&mut self) {
         info!("Unpriming motor {}", self.id);
+        let prime_steps = self.model.intercept();
         if let Some(drv) = &mut self.driver {
-            drv.step_by(-2.0 * self.prime_steps as f64).await.unwrap();
+            drv.step_by(-2.0 * prime_steps).await.unwrap();
+            drv.reset_position();
+        }
+    }
+
+    async fn keep_primed(&mut self) {
+        info!("Priming/Unpriming motor {}", self.id);
+        let prime_steps = self.model.intercept();
+        if let Some(drv) = &mut self.driver {
+            // This should at least get liquid past the pump itself
+            if drv.get_position() == 0 {
+                drv.step_by(0.75 * prime_steps).await.unwrap();
+            }
+
+            // Then 2 unprime passes to make sure liquid isn't stuck in the middle of the hose
+            drv.step_by(-2.0 * prime_steps).await.unwrap();
+            drv.step_by_speed(-2.0 * prime_steps, 0.2 * MAX_RPM).await.unwrap();
             drv.reset_position();
         }
     }
 
     async fn dispense_ml(&mut self, ml: f64) {
-        self.ensure_primed().await;
         if let Some(drv) = &mut self.driver {
-            drv.step_by((ml / self.ml_per_step).floor() as f64)
-                .await
-                .unwrap();
+            // First, unprime slightly to get rid of any liquid at the start of the hose
+            // that way every time we dispense starts from a completely empty hose on both sides
+            drv.step_by(-0.25 * self.model.intercept()).await.unwrap();
 
-            // Back off slightly to prevent extra liquid dripping out from pressure
-            drv.step_by(-200.0).await.unwrap();
+            // Then, dispense the requested amount according to the model
+            drv.step_by(self.model.predict(ml)).await.unwrap();
+
+            // Unprime again completely to return to the starting point
+            self.unprime().await;
         }
     }
 }
@@ -111,11 +120,9 @@ impl StepperMotor {
 enum AppStatus {
     IDLE,
     RUNNING,
-    OTA
+    OTA,
 }
 
-// type SharedState = Arc<Mutex<AppState>>;
-// type SharedStatus = Arc<RwLock<AppStatus>>;
 #[derive(Clone, FromRef)]
 struct AppState {
     motors: Arc<Mutex<Vec<StepperMotor>>>,
@@ -136,7 +143,7 @@ impl AppState {
         self.motors.lock().await.push(StepperMotor {
             id: drv.id(),
             driver: Some(drv),
-            ..Default::default()
+            model: OnlineLinearRegression::new(),
         });
     }
 
@@ -225,23 +232,26 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
     };
     state.save_state().await;
 
-    // Start timer to periodically unprime all motors
+    // Start timer to periodically prime/unprime all motors
     let _state = state.clone();
     tokio::spawn(async move {
         let mut timer = interval(Duration::from_mins(30));
         timer.reset();
         loop {
-        tokio::select! {
-            _ = timer_reset_rx.recv() => {
-                info!("Resetting unprime timer");
-                timer.reset();
-            }
-            _ = timer.tick() => {
-                info!("Auto-unpriming all motors due to inactivity");
-                unprime_all(State(_state.clone())).await;
-            }
-        };
-    }});
+            tokio::select! {
+                _ = timer_reset_rx.recv() => {
+                    info!("Resetting unprime timer");
+                    timer.reset();
+                }
+                _ = timer.tick() => {
+                    info!("Auto-unpriming all motors due to inactivity");
+                    for m in _state.motors.lock().await.iter_mut() {
+                        m.keep_primed().await;
+                    }
+                }
+            };
+        }
+    });
 
     info!("Config loaded, starting app...");
     let app = Router::new()
@@ -249,10 +259,8 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
         .route("/full-status", get(get_full_status))
         .route("/status", get(get_status))
         .route("/debug/step", post(debug_step))
-        .route("/debug/calibrate", post(debug_calibrate))
         .route("/debug/clear-config", post(debug_clear_config))
         .route("/dispense", post(dispense))
-        .route("/update-prime", post(update_prime))
         .route("/unprime", post(unprime))
         .route("/unprime-all", post(unprime_all))
         .route("/calibrate", post(calibrate))
@@ -288,17 +296,15 @@ struct MotorStatus {
     idx: usize,
     id: u32,
     position: i32,
-    is_primed: bool,
-    prime_steps: u32,
-    ml_per_step: f64,
+    model: OnlineLinearRegression,
 }
 
 #[derive(Serialize)]
 struct FullStatus {
-    num_motors: usize,
-    motors: Vec<MotorStatus>,
     version: &'static str,
     status: AppStatus,
+    num_motors: usize,
+    motors: Vec<MotorStatus>,
 }
 
 async fn get_full_status(State(state): State<AppState>) -> Json<FullStatus> {
@@ -312,9 +318,7 @@ async fn get_full_status(State(state): State<AppState>) -> Json<FullStatus> {
                 idx,
                 id: m.id,
                 position: m.driver.as_ref().unwrap().get_position(),
-                is_primed: m.is_primed(),
-                prime_steps: m.prime_steps,
-                ml_per_step: m.ml_per_step,
+                model: m.model,
             })
             .collect(),
         version: env!("CARGO_PKG_VERSION"),
@@ -346,7 +350,7 @@ struct DispenseReq {
 
 async fn dispense(
     State(state): State<AppState>,
-    Json(req): Json<DispenseReq>
+    Json(req): Json<DispenseReq>,
 ) -> StatusCode {
     let mut res = StatusCode::OK;
     let mut motors = state.motors.lock().await;
@@ -369,18 +373,21 @@ async fn dispense(
 struct DebugStepReq {
     motor_idx: usize,
     steps: f64,
+    speed: Option<f64>,
 }
 
 async fn debug_step(
     State(state): State<AppState>,
-    Json(req): Json<DebugStepReq>
+    Json(req): Json<DebugStepReq>,
 ) -> StatusCode {
     let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
             if let Some(drv) = &mut motor.driver {
                 state.reset_timer().await;
                 state.set_status(AppStatus::RUNNING).await;
-                drv.step_by(req.steps).await.unwrap();
+                drv.step_by_speed(req.steps, req.speed.unwrap_or(MAX_RPM))
+                    .await
+                    .unwrap();
                 state.set_status(AppStatus::IDLE).await;
             }
             StatusCode::OK
@@ -391,59 +398,10 @@ async fn debug_step(
     res
 }
 
-#[derive(Deserialize)]
-struct DebugCalibrateReq {
-    motor_idx: usize,
-    value: f64,
-}
-
-async fn debug_calibrate(
-    State(state): State<AppState>,
-    Json(req): Json<DebugCalibrateReq>
-) -> StatusCode {
-    let res = match state.motors.lock().await.get_mut(req.motor_idx) {
-        Some(motor) => {
-            motor.ml_per_step = req.value;
-            StatusCode::OK
-        }
-        None => StatusCode::BAD_REQUEST,
-    };
-
-    state.save_state().await;
-    res
-}
-
-
 async fn debug_clear_config(State(state): State<AppState>) {
     state.motors.lock().await.clear();
     state.save_state().await;
     restart();
-}
-
-#[derive(Deserialize)]
-struct UpdatePrimeReq {
-    motor_idx: usize,
-    prime_steps: u32,
-}
-
-async fn update_prime(
-    State(state): State<AppState>,
-    Json(req): Json<UpdatePrimeReq>,
-) -> StatusCode {
-    let res = match state.motors.lock().await.get_mut(req.motor_idx) {
-        Some(motor) => {
-            state.reset_timer().await;
-            state.set_status(AppStatus::RUNNING).await;
-            motor.unprime().await;
-            motor.prime_steps = req.prime_steps;
-            motor.ensure_primed().await;
-            state.set_status(AppStatus::IDLE).await;
-            StatusCode::OK
-        }
-        None => StatusCode::BAD_REQUEST,
-    };
-    state.save_state().await;
-    res
 }
 
 #[derive(Deserialize)]
@@ -453,7 +411,7 @@ struct UnprimeReq {
 
 async fn unprime(
     State(state): State<AppState>,
-    Json(req): Json<UnprimeReq>
+    Json(req): Json<UnprimeReq>,
 ) -> StatusCode {
     match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
@@ -486,12 +444,12 @@ struct CalibrateReq {
 
 async fn calibrate(
     State(state): State<AppState>,
-    Json(req): Json<CalibrateReq>
+    Json(req): Json<CalibrateReq>,
 ) -> StatusCode {
     let res = match state.motors.lock().await.get_mut(req.motor_idx) {
         Some(motor) => {
-            let orig_steps = req.expected / motor.ml_per_step;
-            motor.ml_per_step = req.actual / orig_steps;
+            let steps = motor.model.predict(req.expected);
+            motor.model.update(req.actual, steps);
             StatusCode::OK
         }
         None => StatusCode::BAD_REQUEST,
@@ -512,8 +470,8 @@ enum VolUnit {
     #[serde(alias = "gal")]
     Gal,
 
-    #[serde(alias = "fl oz", alias="Fl Oz", alias="floz")]
-    FlOz
+    #[serde(alias = "fl oz", alias = "Fl Oz", alias = "floz")]
+    FlOz,
 }
 
 impl VolUnit {
@@ -522,7 +480,7 @@ impl VolUnit {
             VolUnit::Ml => 1.0,
             VolUnit::L => 1000.0,
             VolUnit::Gal => 3785.41,
-            VolUnit::FlOz => 29.5735
+            VolUnit::FlOz => 29.5735,
         }
     }
 }
@@ -543,7 +501,7 @@ struct DoseSolutionReq {
 
 async fn dose_solution(
     State(state): State<AppState>,
-    Json(req): Json<DoseSolutionReq>
+    Json(req): Json<DoseSolutionReq>,
 ) -> StatusCode {
     let solution_ml = req.target_amount * req.target_unit.scale_to_ml();
     let solution_gal = solution_ml / VolUnit::Gal.scale_to_ml();

@@ -18,8 +18,8 @@ const DIR_SETUP: Duration = Duration::from_nanos(650);
 const EN_SETUP: Duration = Duration::from_nanos(650);
 
 // TODO: make this configurable for different motor models
-const MAX_RPM: f64 = 400.0;
-const MAX_ACCEL: f64 = 400.0;
+pub const MAX_RPM: f64 = 400.0;
+pub const MAX_ACCEL: f64 = 400.0;
 
 #[derive(Copy, Clone, Debug)]
 pub enum MicroSteps {
@@ -72,12 +72,12 @@ impl DRV8825 {
         self.pin_en.pin() as u32
     }
 
-    fn gen_steps(&self, steps: f64) -> Result<impl Iterator<Item = Symbol>, EspError> {
+    fn gen_steps(&self, steps: f64, speed: f64) -> Result<impl Iterator<Item = Symbol>, EspError> {
         let one_step_ticks = PulseTicks::new_with_duration(self.clock, &STEP_PULSE)?;
 
         let mut sg = Stepgen::new(self.clock.0);
         sg.set_acceleration((self.microsteps.scale(MAX_ACCEL) as u32) << 8).unwrap();
-        sg.set_target_speed((self.microsteps.scale(MAX_RPM / 60.0 * 200.0) as u32) << 8).unwrap();
+        sg.set_target_speed((self.microsteps.scale(speed / 60.0 * 200.0) as u32) << 8).unwrap();
         sg.set_target_step(self.microsteps.scale(steps) as u32).unwrap();
 
         // The generated delays are ticks between the rising edges of two pulses,
@@ -91,7 +91,7 @@ impl DRV8825 {
         }))
     }
 
-    pub async fn step_by(&mut self, steps: f64) -> Result<(), EspError> {
+    pub async fn step_by_speed(&mut self, steps: f64, speed: f64) -> Result<(), EspError> {
         // Setup, then wait 650ns
         self.pin_dir.set_level(match steps {
             ..=0.0 => Level::Low,
@@ -101,7 +101,7 @@ impl DRV8825 {
         tokio::time::sleep(EN_SETUP).await;
 
         // Generate and send pulses to the stepper motor
-        let res = match self.gen_steps(steps.abs()) {
+        let res = match self.gen_steps(steps.abs(), speed) {
             Ok(syms) => {
                 let _tx = Arc::clone(&self.tx);
                 tokio::task::spawn_blocking(move || {
@@ -117,6 +117,10 @@ impl DRV8825 {
         self.position = self.position.saturating_add(steps.round() as i32);
         res
     }
+
+     pub async fn step_by(&mut self, steps: f64) -> Result<(), EspError> {
+        self.step_by_speed(steps, MAX_RPM).await
+     }
 
     pub async fn goto(&mut self, target_pos: i32) -> Result<(), EspError> {
         self.step_by(target_pos.saturating_sub(self.position) as f64).await

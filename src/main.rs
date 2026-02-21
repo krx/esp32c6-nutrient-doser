@@ -1,4 +1,5 @@
 mod app;
+mod online_linreg;
 mod rmt_drv8825;
 mod util;
 
