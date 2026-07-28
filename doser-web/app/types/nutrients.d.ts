@@ -4,6 +4,7 @@ export interface Nutrient {
   name: string;
   unit: NutrientUnit;
   color: string;
+  density?: number;
   nutrients: Chemical[];
 }
 

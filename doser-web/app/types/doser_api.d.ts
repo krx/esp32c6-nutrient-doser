@@ -51,6 +51,10 @@ export interface CalibrateReq {
   actual: number;
 }
 
+export interface ClearCalibrationReq {
+  motor_idx: number;
+}
+
 export interface NutrientInfo {
   name: string;
   motor_idx: number;

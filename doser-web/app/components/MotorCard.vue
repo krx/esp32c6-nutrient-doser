@@ -8,7 +8,7 @@ const doser = defineModel<DoserInfo>('doser', { required: true });
 const motor = defineModel<MotorConfig>({ required: true });
 
 const calibration_modal = ref(false);
-const priming_modal = ref(false);
+const clear_calibration_modal = ref(false);
 const dispense_modal = ref(false);
 const dispense_amt = ref(1.0);
 const settings = ref<DropdownMenuItem[]>([
@@ -18,9 +18,9 @@ const settings = ref<DropdownMenuItem[]>([
     onSelect: (_) => (calibration_modal.value = true),
   },
   {
-    label: 'Priming settings',
-    icon: 'i-tabler-droplet-plus',
-    onSelect: (_) => (priming_modal.value = true),
+    label: 'Clear calibration',
+    icon: 'i-lucide-triangle-alert',
+    onSelect: (_) => (clear_calibration_modal.value = true),
   },
   {
     label: 'Dispense',
@@ -29,16 +29,9 @@ const settings = ref<DropdownMenuItem[]>([
   },
 ]);
 
-function add_priming_steps(steps: number) {
-  motor.value.prime_steps = Math.max(0, motor.value.prime_steps! + steps);
-}
-
-async function set_priming_steps() {
-  await api.add_doser(doser.value);
-  await dapi.update_prime(doser.value.url, {
-    motor_idx: motor.value.idx,
-    prime_steps: motor.value.prime_steps!,
-  });
+async function clear_calibration() {
+  await dapi.clear_calibration(doser.value.url, { motor_idx: motor.value.idx });
+  clear_calibration_modal.value = false;
 }
 </script>
 
@@ -81,32 +74,23 @@ async function set_priming_steps() {
       <MotorCalibration v-model="motor" v-model:doser="doser" v-model:modal="calibration_modal" />
     </template>
   </UModal>
-  <UModal v-model:open="priming_modal" title="Priming Setup">
+  <UModal v-model:open="clear_calibration_modal" title="Clear Calibration">
     <template #body>
-      <div class="flex flex-col items-center text-center w-full gap-4">
-        <UFieldGroup size="xl">
-          <UInputNumber v-model="motor.prime_steps" :min="0" :step="1" />
-          <UBadge label="steps" variant="subtle" color="neutral" />
-        </UFieldGroup>
-        <UFieldGroup class="flex flex-row items-center text-center justify-center">
+      <div class="flex flex-col gap-4">
+        <p>
+          Clear the calibration for {{ motor.name }}? You will need to calibrate this motor again before
+          dosing accurately.
+        </p>
+        <div class="flex justify-end gap-2">
+          <UButton label="Cancel" color="neutral" variant="subtle" @click="clear_calibration_modal = false" />
           <UButton
-            v-for="i in [-1000, -100, -10, 10, 100, 1000]"
-            :key="i"
-            :label="`${i}`"
-            size="xl"
-            variant="subtle"
-            class="text-2xl"
-            @click="add_priming_steps(i)"
+            label="Clear calibration"
+            color="error"
+            icon="i-lucide-triangle-alert"
+            loading-auto
+            @click="clear_calibration"
           />
-        </UFieldGroup>
-        <UButton
-          label="Set"
-          leading-icon="i-tabler-droplet-plus"
-          :block="true"
-          loading-auto
-          size="xl"
-          @click="set_priming_steps"
-        />
+        </div>
       </div>
     </template>
   </UModal>

@@ -1,5 +1,6 @@
 import type {
   CalibrateReq,
+  ClearCalibrationReq,
   DebugStepReq,
   DispenseReq,
   DoseSolutionReq,
@@ -73,6 +74,13 @@ export async function reboot(url_base: string) {
 
 export async function ota(url_base: string, req: OtaReq) {
   return await $fetch(`${url_base}/ota`, {
+    method: 'POST',
+    body: req,
+  });
+}
+
+export async function clear_calibration(url_base: string, req: ClearCalibrationReq) {
+  return await $fetch(`${url_base}/clear-calibration`, {
     method: 'POST',
     body: req,
   });

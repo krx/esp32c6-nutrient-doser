@@ -2,6 +2,8 @@
 import * as dapi from '@/utils/doser_api';
 import type { StepperItem } from '@nuxt/ui';
 import type { DoserInfo, MotorConfig } from '~~/shared/types/doser';
+import type { NutrientTable, NutrientUnit } from '~/types/nutrients';
+import nutrients from '@/assets/nutrients.json';
 
 const motor = defineModel<MotorConfig>({ required: true });
 const doser = defineModel<DoserInfo>('doser', { required: true });
@@ -10,6 +12,11 @@ const wakelock = reactive(useWakeLock());
 
 const dispensed = ref(10.0);
 const actual = ref(10.0);
+const actual_unit = ref<NutrientUnit>('g');
+const nutrient_table = nutrients as NutrientTable;
+const nutrient_density = computed(() => nutrient_table.find((nutrient) => nutrient.name === motor.value.name)?.density);
+const actual_units = computed<NutrientUnit[]>(() => nutrient_density.value ? ['mL', 'g'] : ['mL']);
+const actual_ml = computed(() => actual_unit.value === 'g' ? actual.value / nutrient_density.value! : actual.value);
 
 const stepper = useTemplateRef('stepper');
 const active_step = ref(0);
@@ -50,7 +57,7 @@ async function calibrate_step() {
   await dapi.calibrate(doser.value.url, {
     motor_idx: motor.value.idx,
     expected: dispensed.value,
-    actual: actual.value,
+    actual: actual_ml.value,
   });
   stepper.value?.next();
 }
@@ -101,8 +108,11 @@ async function confirm_step() {
               :step-snapping="false"
               :ui="{ base: ['text-4xl'] }"
             />
-            <UBadge label="mL" variant="subtle" color="neutral" />
+            <USelect v-model="actual_unit" :items="actual_units" variant="subtle" color="neutral" />
           </UFieldGroup>
+          <p v-if="actual_unit === 'g'" class="text-sm text-muted">
+            {{ actual }} g = {{ actual_ml.toFixed(2) }} mL ({{ nutrient_density }} g/mL)
+          </p>
           <USeparator class="h-4" />
           <div class="flex flex-row w-full">
             <UButton label="Back" icon="i-lucide-arrow-left" @click="stepper?.prev()" />

@@ -92,6 +92,7 @@
     "name": "CALiMAGic",
     "unit": "mL",
     "color": "#fac858",
+    "density": 1.28,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -119,6 +120,7 @@
     "name": "FloraMicro",
     "unit": "mL",
     "color": "#ee6666",
+    "density": 1.243,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -181,6 +183,7 @@
     "name": "FloraGro",
     "unit": "mL",
     "color": "#91cc75",
+    "density": 1.138,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -208,6 +211,7 @@
     "name": "FloraBloom",
     "unit": "mL",
     "color": "#ea7ccc",
+    "density": 1.170,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -240,6 +244,7 @@
     "name": "FloraNovaGrow",
     "unit": "mL",
     "color": "#91cc75",
+    "density": 1.54,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -312,6 +317,7 @@
     "name": "FloraNovaBloom",
     "unit": "mL",
     "color": "#ea7ccc",
+    "density": 1.53,
     "nutrients": [
       {
         "name": "Nitrogen",
@@ -384,6 +390,7 @@
     "name": "ArmorSi",
     "unit": "mL",
     "color": "#587bf3",
+    "density": 1.115,
     "nutrients": [
       {
         "name": "Potassium",
