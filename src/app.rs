@@ -85,6 +85,16 @@ impl StepperMotor {
         }
     }
 
+    async fn unprime_slow(&mut self) {
+        info!("Unpriming motor {}", self.id);
+        let prime_steps = self.model.intercept();
+        if let Some(drv) = &mut self.driver {
+            drv.step_by(-2.0 * prime_steps).await.unwrap();
+            drv.step_by_speed(-4.0 * prime_steps, 0.2 * MAX_RPM).await.unwrap();
+            drv.reset_position();
+        }
+    }
+
     async fn keep_primed(&mut self) {
         info!("Priming/Unpriming motor {}", self.id);
         let prime_steps = self.model.intercept();
@@ -121,6 +131,7 @@ enum AppStatus {
     IDLE,
     RUNNING,
     OTA,
+    PRIMING,
 }
 
 #[derive(Clone, FromRef)]
@@ -235,7 +246,7 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
     // Start timer to periodically prime/unprime all motors
     let _state = state.clone();
     tokio::spawn(async move {
-        let mut timer = interval(Duration::from_mins(30));
+        let mut timer = interval(Duration::from_mins(60));
         timer.reset();
         loop {
             tokio::select! {
@@ -245,9 +256,12 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
                 }
                 _ = timer.tick() => {
                     info!("Auto-unpriming all motors due to inactivity");
+                    _state.set_status(AppStatus::PRIMING).await;
                     for m in _state.motors.lock().await.iter_mut() {
                         m.keep_primed().await;
                     }
+                    timer.reset();
+                    _state.set_status(AppStatus::IDLE).await;
                 }
             };
         }
@@ -264,6 +278,7 @@ pub async fn run(drivers: Vec<DRV8825>) -> anyhow::Result<()> {
         .route("/unprime", post(unprime))
         .route("/unprime-all", post(unprime_all))
         .route("/calibrate", post(calibrate))
+        .route("/clear-calibration", post(clear_calibration))
         .route("/dose", post(dose_solution))
         .route("/reboot", get(reboot))
         .route("/ota", post(handle_ota))
@@ -429,7 +444,7 @@ async fn unprime_all(State(state): State<AppState>) -> StatusCode {
     state.reset_timer().await;
     state.set_status(AppStatus::RUNNING).await;
     for m in state.motors.lock().await.iter_mut() {
-        m.unprime().await;
+        m.unprime_slow().await;
     }
     state.set_status(AppStatus::IDLE).await;
     StatusCode::OK
@@ -450,6 +465,27 @@ async fn calibrate(
         Some(motor) => {
             let steps = motor.model.predict(req.expected);
             motor.model.update(req.actual, steps);
+            StatusCode::OK
+        }
+        None => StatusCode::BAD_REQUEST,
+    };
+
+    state.save_state().await;
+    res
+}
+
+#[derive(Deserialize)]
+struct ClearCalibrationReq {
+    motor_idx: usize,
+}
+
+async fn clear_calibration(
+    State(state): State<AppState>,
+    Json(req): Json<ClearCalibrationReq>,
+) -> StatusCode {
+    let res = match state.motors.lock().await.get_mut(req.motor_idx) {
+        Some(motor) => {
+            motor.model = OnlineLinearRegression::new();
             StatusCode::OK
         }
         None => StatusCode::BAD_REQUEST,
